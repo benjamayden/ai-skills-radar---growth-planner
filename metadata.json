@@ -1,0 +1,6 @@
+{
+  "name": "AI Skills Radar & Growth Planner",
+  "description": "An application to help users identify their skills, get self-assessment rubrics, select focus skills for growth, receive personalized growth plans, and see suggested job titles based on their profile, powered by Gemini API.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
