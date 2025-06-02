@@ -10,6 +10,8 @@ import {
   GenAIService,
   LearningResource,
   Candidate,
+  SuggestedJobsResponse,
+  Rubric,
 } from '../types';
 import { DEFAULT_SAFETY_SETTINGS } from '../constants';
 
@@ -41,6 +43,11 @@ function parseJsonFromText(text: string): any {
   }
 }
 
+const stripReferences = (text: string): string => {
+  if (!text) return "";
+  return text.replace(/\[[\d,\s]+\]/g, '').replace(/\(\s*see sources?\s*\d*\s*\)/gi, '').trim();
+};
+
 const identifySkillsAndGenerateRubrics = async (
   genAI: GoogleGenAI,
   userInput: UserInputData
@@ -49,17 +56,18 @@ const identifySkillsAndGenerateRubrics = async (
 You are an AI expert career analyst specializing in the product development and technology job market.
 Your task is to identify key skills currently in demand and generate standard, market-relevant rubrics for them.
 
-Use the following user input AS CONTEXT AND GUIDANCE for your analysis of the job market. This input helps to narrow down the areas of the job market and types of skills to focus on, but THE SKILLS AND RUBRIC DESCRIPTIONS THEMSELVES SHOULD BE BASED ON GENERAL MARKET EXPECTATIONS, NOT PERSONALIZED TO THE USER'S STATED CURRENT ABILITIES.
+Use Google Search to research current job market demands and identify relevant skills.
+The following user input should act AS CONTEXT AND GUIDANCE for your web search to narrow down the areas of the job market and types of skills to focus on.
 User Context:
 - Hard Skills Listed by User (use as keywords or indicators of interest): ${userInput.hardSkills}
 - User's Resume Information / Key Experience (provides context on the types of roles/domains they've been in or are interested in): ${userInput.resumeInfo}
 - What Makes User Thrive (indicates preferred work styles or areas of passion, helping to theme the market search): ${userInput.aspirationsThrive}
 - User's Career Goals (Next 5 Years) (helps identify relevant career trajectories and associated market skills): ${userInput.aspirationsGoals}
 
-Based on your analysis of the CURRENT JOB MARKET for roles like Product Manager, UX/UI Designer, Software Developer, Data Analyst, Program Manager, Business Analyst, and considering the user's input above as a *lens* or *filter* for your market search:
+Based on your web search and analysis of the CURRENT JOB MARKET for roles like Product Manager, UX/UI Designer, Software Developer, Data Analyst, Program Manager, Business Analyst (filtered by the user's context):
 
 1. Identify a list of approximately 15-20 key skills (a mix of hard and soft skills) that are in demand.
-   Focus on skills relevant to the types of roles and domains indicated by the user's input. For example, if the user mentions "leading design teams" and "UX research", focus on market-relevant design leadership and research skills.
+   Focus on skills relevant to the types of roles and domains indicated by the user's input. For example, if the user mentions "leading design teams" and "UX research", your search should confirm and prioritize market-relevant design leadership and research skills.
 
 2. For each identified skill, provide:
     a. A unique 'id' (e.g., "python_programming", "user_research_methods"). Use lowercase and underscores.
@@ -69,12 +77,11 @@ Based on your analysis of the CURRENT JOB MARKET for roles like Product Manager,
 
 IMPORTANT INSTRUCTIONS FOR RUBRIC DESCRIPTIONS:
 For each rubric level ("foundational", "intermediate", "advanced", "expert"):
-- The description MUST reflect what that competency level generally entails FOR THAT SKILL IN THE CURRENT PRODUCT/TECHNOLOGY JOB MARKET.
+- The description MUST reflect what that competency level generally entails FOR THAT SKILL IN THE CURRENT PRODUCT/TECHNOLOGY JOB MARKET (as informed by your search).
 - These descriptions should be standard market definitions, not personalized to the specific user's current proficiency as described in their resume.
 - Describe demonstrable abilities, responsibilities, or depth of knowledge typically expected at each level for roles that require this skill.
-- Example for "foundational" for "User Research" (market definition): "Understands basic user research concepts and can assist in research activities like note-taking or participant screening under direct supervision. Familiar with common terminology."
-- Example for "advanced" for "Agile Project Management" (market definition): "Independently leads complex agile projects, mentors teams in agile best practices, and can tailor methodologies to specific project and organizational needs. Demonstrates strategic thinking in applying agile frameworks to achieve business outcomes."
 - Keep descriptions concise (1-2 sentences) and focused on objective, market-standard criteria.
+- CRITICALLY: Do not include any numerical or bracketed references (e.g., [1], [2, 3], [source 1]) in the rubric descriptions. The text should be clean and directly descriptive.
 
 Return the output as a single, valid JSON object.
 The JSON object MUST have a top-level key "skills".
@@ -99,7 +106,7 @@ Example of the complete expected JSON structure:
         "advanced": "Designs and implements scalable, resilient, and secure cloud architectures on AWS. Optimizes applications for performance and cost. Proficient with Infrastructure as Code tools.",
         "expert": "Leads AWS strategy for an organization, architects complex multi-account environments, drives innovation using advanced AWS services, and is a recognized authority on AWS best practices."
       }
-    }, // <<< Note this comma separating skill objects
+    },
     {
       "id": "stakeholder_management",
       "name": "Stakeholder Management",
@@ -110,12 +117,11 @@ Example of the complete expected JSON structure:
         "advanced": "Develops and executes stakeholder engagement strategies for complex projects. Navigates conflicting interests, builds consensus, and influences senior stakeholders.",
         "expert": "Shapes and maintains long-term strategic relationships with critical stakeholders across an organization and externally. Expertly manages complex political landscapes and aligns diverse groups towards common goals."
       }
-    } // <<< No comma if this is the last skill object in the array
-    // ... more skill objects would continue, each (except the last) followed by a comma.
+    }
   ]
 }
 
-Focus on creating objective, market-standard rubrics. The user's input helps to direct your search within the job market, but the skill definitions and rubric criteria themselves should be general.
+Focus on creating objective, market-standard rubrics based on your search. The user's input helps to direct your search within the job market, but the skill definitions and rubric criteria themselves should be general.
 Do not include any text or comments outside the main JSON object. The entire response must be parsable as JSON.
 `;
 
@@ -124,7 +130,7 @@ Do not include any text or comments outside the main JSON object. The entire res
       model: 'gemini-2.5-flash-preview-04-17',
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }], 
         safetySettings: DEFAULT_SAFETY_SETTINGS,
         temperature: 0.4, 
       },
@@ -154,17 +160,21 @@ Do not include any text or comments outside the main JSON object. The entire res
           typeof s.rubric.expert !== 'string' || s.rubric.expert.trim() === '') {
         console.warn(`Skipping skill '${s.id}' due to incomplete or invalid 'rubric' descriptions:`, s.rubric); return null;
       }
+      
+      // Strip references from rubric descriptions
+      const cleanedRubric: Rubric = {
+        skillId: String(s.id).trim(),
+        foundational: stripReferences(String(s.rubric.foundational)),
+        intermediate: stripReferences(String(s.rubric.intermediate)),
+        advanced: stripReferences(String(s.rubric.advanced)),
+        expert: stripReferences(String(s.rubric.expert)),
+      };
+
       return {
         id: String(s.id).trim(),
         name: String(s.name).trim(),
         category: s.category as SkillCategory,
-        rubric: {
-          skillId: String(s.id).trim(), 
-          foundational: String(s.rubric.foundational).trim(),
-          intermediate: String(s.rubric.intermediate).trim(),
-          advanced: String(s.rubric.advanced).trim(),
-          expert: String(s.rubric.expert).trim(),
-        }
+        rubric: cleanedRubric
       };
     }).filter((s: IdentifiedSkillData | null): s is IdentifiedSkillData => s !== null);
 
@@ -174,15 +184,16 @@ Do not include any text or comments outside the main JSON object. The entire res
     }
      if (validatedSkills.length === 0 && parsedData.skills.length === 0) {
       // This case is fine, means AI genuinely found no skills or user input was sparse.
-      // No error, just return empty array.
     }
     
-    return { skills: validatedSkills };
+    const candidate = response.candidates?.[0] as Candidate | undefined;
+    return { 
+        skills: validatedSkills,
+        searchAttributions: candidate?.groundingMetadata?.groundingChunks || [],
+    };
 
   } catch (error) {
     console.error("Error in identifySkillsAndGenerateRubrics:", error);
-    // Re-throw the error so it can be caught by the UI and displayed
-    // If it's a custom error from parseJsonFromText, it will be more descriptive.
     throw error; 
   }
 };
@@ -192,21 +203,34 @@ const generateGrowthPlan = async (
   genAI: GoogleGenAI,
   skillName: string,
   userCompetencyLevel: RubricLevel,
-  aspirationsGoals: string // Added aspirationsGoals for context
+  aspirationsGoals: string,
+  suggestedJobTitles: string[] 
 ): Promise<GrowthPlan> => {
+
+  const jobTitlesString = suggestedJobTitles.length > 0 ? suggestedJobTitles.join(', ') : 'N/A (no specific titles suggested yet or not applicable)';
+  
   const prompt = `
 The user has selected "${skillName}" as a focus skill for their professional growth.
 Their current self-assessed competency in this skill is "${userCompetencyLevel}".
 Their stated 5-year career goals are: "${aspirationsGoals}".
+Based on their overall profile, they have also been suggested these potential job titles: ${jobTitlesString}.
 
 Task:
-Please provide a structured growth plan. Use the following section headers EXACTLY as written, followed by your content for that section:
+Please provide a structured growth plan. Use Google Search to gather current information for all sections, ensuring it's up-to-date and relevant. Use the following section headers EXACTLY as written, followed by your content for that section:
 
 ### YOUR CURRENT STANDING ###
-(Analyze the user's current self-assessed competency level ("${userCompetencyLevel}") for the skill "${skillName}". Describe what this level typically means in the current job market – e.g., responsibilities, expectations, type of tasks they might handle. Keep this concise, 2-3 sentences.)
+(Analyze the user's current self-assessed competency level ("${userCompetencyLevel}") for the skill "${skillName}".
+    * Describe what this level typically means in terms of responsibilities, expectations, and common tasks based on current job market information.
+    * **Crucially, detail what the current job market demands for individuals with "${skillName}" at the "${userCompetencyLevel}" level and why this skill is important for roles at this stage (consider the types of roles suggested: ${jobTitlesString}, and their general career goals: "${aspirationsGoals}").**
+    * **Specify what kind of demonstrable experiences, projects, or achievements typical job titles (relevant to their profile and goals) are looking for from someone with this skill at this level. Explain how the user can currently demonstrate their competency in tangible ways.**
+    Keep this section **detailed yet focused.**)
 
 ### DEVELOPING TOWARDS YOUR GOALS ###
-(Considering the user's 5-year career goals ("${aspirationsGoals}"), describe what a higher level of proficiency in "${skillName}" (e.g., Advanced or Expert, or the next step up from their current level if already high) would entail. How does enhanced skill in "${skillName}" align with their aspirations? What kind of impact or roles could they aim for with improved competency? Keep this concise, 2-3 sentences.)
+(Considering the user's 5-year career goals ("${aspirationsGoals}") and the suggested job titles (${jobTitlesString}), describe what a higher level of proficiency in "${skillName}" (e.g., Advanced, Expert, or the next significant step up) would entail.
+    * Explain how enhanced proficiency in "${skillName}" directly aligns with achieving "${aspirationsGoals}" and potentially helps in attaining roles like those suggested or related ones.
+    * **Detail what specific demonstrable experiences, projects, portfolio pieces, or achievements job titles associated with their 5-year aspirations (and similar to ${jobTitlesString}) are looking for in relation to "${skillName}" at a more advanced level.**
+    * **Provide guidance on how the user will know they have reached this higher proficiency level – what are the indicators, milestones, or ways they can tangibly demonstrate this advanced competency to potential employers or for new roles?**
+    Keep this section **insightful and actionable.**)
 
 ### LEARNING RESOURCES ###
 (Provide a list of 3-5 curated learning resources to help the user improve their "${skillName}" skill. For each resource, present it strictly in the following format on separate lines:
@@ -214,9 +238,8 @@ Resource Title: [Title of resource]
 Resource URL: [Direct URL, ensure it's a full valid URL starting with http:// or https://]
 Resource Type: [e.g., Article, Online Course, Community, Tool, Book, Video, Documentation, Workshop, Certification]
 --- (separator between resources)
-Focus on high-quality, reputable resources.)
+Focus on high-quality, reputable resources relevant for moving from "${userCompetencyLevel}" upwards in "${skillName}".)
 
-Use Google Search to gather current information for all sections. Ensure the information is up-to-date and relevant.
 Structure your entire response clearly under these specific headers.
 `;
 
@@ -227,7 +250,7 @@ Structure your entire response clearly under these specific headers.
       config: {
         tools: [{ googleSearch: {} }],
         safetySettings: DEFAULT_SAFETY_SETTINGS,
-        temperature: 0.6,
+        temperature: 0.6, 
       },
     });
 
@@ -250,12 +273,12 @@ Structure your entire response clearly under these specific headers.
 
     const currentStandingMatch = textResponse.match(/### YOUR CURRENT STANDING ###\s*([\s\S]*?)(?=\n### DEVELOPING TOWARDS YOUR GOALS ###|$)/);
     if (currentStandingMatch && currentStandingMatch[1]) {
-      currentProficiencyContext = currentStandingMatch[1].trim();
+      currentProficiencyContext = stripReferences(currentStandingMatch[1].trim());
     }
 
     const targetGoalsMatch = textResponse.match(/### DEVELOPING TOWARDS YOUR GOALS ###\s*([\s\S]*?)(?=\n### LEARNING RESOURCES ###|$)/);
     if (targetGoalsMatch && targetGoalsMatch[1]) {
-      targetProficiencyContext = targetGoalsMatch[1].trim();
+      targetProficiencyContext = stripReferences(targetGoalsMatch[1].trim());
     }
     
     const candidate = response.candidates?.[0] as Candidate | undefined;
@@ -277,16 +300,16 @@ Structure your entire response clearly under these specific headers.
 const suggestJobTitles = async (
   genAI: GoogleGenAI,
   skillsWithRatings: { skillName: string; rating: RubricLevel }[]
-): Promise<string[]> => {
+): Promise<SuggestedJobsResponse> => {
   if (skillsWithRatings.length === 0) {
-    return []; // No skills to base suggestions on
+    return { titles: [], searchAttributions: [] };
   }
   const skillsProfileString = skillsWithRatings
     .map(sr => `- ${sr.skillName} (Proficiency: ${sr.rating})`)
     .join("\n");
 
   const prompt = `
-You are an AI expert career advisor. Based on the user's following skill profile, which includes their self-assessed competency levels (Foundational, Intermediate, Advanced, Expert), suggest a list of 5-7 potential job titles that align well with their current capabilities and the skills they possess.
+You are an AI expert career advisor. Based on the user's following skill profile, which includes their self-assessed competency levels (Foundational, Intermediate, Advanced, Expert), suggest a list of 5-7 potential job titles that align well with their current capabilities and the skills they possess. Use Google Search to ensure suggestions are current and relevant.
 
 User Skills Profile:
 ${skillsProfileString}
@@ -307,9 +330,9 @@ Ensure the entire response is a valid JSON object and contains only the list of 
       model: 'gemini-2.5-flash-preview-04-17',
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }], 
         safetySettings: DEFAULT_SAFETY_SETTINGS,
-        temperature: 0.5, // Slightly lower temperature for more focused job title suggestions
+        temperature: 0.5, 
       },
     });
     
@@ -318,7 +341,13 @@ Ensure the entire response is a valid JSON object and contains only the list of 
     if (!parsedData.jobTitles || !Array.isArray(parsedData.jobTitles)) {
       throw new Error("AI response is missing 'jobTitles' array or it's not a valid array. Check AI output format.");
     }
-    return parsedData.jobTitles.map(String).filter((title: string) => title.trim() !== "");
+    
+    const candidate = response.candidates?.[0] as Candidate | undefined;
+    return {
+        titles: parsedData.jobTitles.map(String).filter((title: string) => title.trim() !== ""),
+        searchAttributions: candidate?.groundingMetadata?.groundingChunks || [],
+    };
+
   } catch (error) {
     console.error("Error in suggestJobTitles:", error);
     throw new Error(`Failed to suggest job titles. ${(error as Error).message}`);

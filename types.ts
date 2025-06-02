@@ -61,6 +61,7 @@ export interface IdentifiedSkillData extends Skill {
 
 export interface ProcessedSkillsResponse {
   skills: IdentifiedSkillData[];
+  searchAttributions?: GroundingChunk[]; // Optional search attributions from skill identification
 }
 
 export interface LearningResource {
@@ -89,17 +90,31 @@ export interface GroundingMetadata {
 }
 export interface Candidate {
   groundingMetadata?: GroundingMetadata;
+  // Assuming candidates structure for safety ratings and other content parts if needed.
+  // For simplicity, only groundingMetadata is shown here as it's directly used.
 }
+
 
 export interface GeminiSafetySetting {
   category: HarmCategory;
   threshold: HarmBlockThreshold;
 }
 
+export interface SuggestedJobsResponse {
+  titles: string[];
+  searchAttributions?: GroundingChunk[];
+}
+
 export interface GenAIService {
   identifySkillsAndGenerateRubrics: (genAI: GoogleGenAI, userInput: UserInputData) => Promise<ProcessedSkillsResponse>;
-  generateGrowthPlan: (genAI: GoogleGenAI, skillName: string, userCompetencyLevel: RubricLevel, aspirationsGoals: string) => Promise<GrowthPlan>; // aspirationsGoals is used by the service
-  suggestJobTitles: (genAI: GoogleGenAI, skillsWithRatings: { skillName: string; rating: RubricLevel }[]) => Promise<string[]>;
+  generateGrowthPlan: (
+    genAI: GoogleGenAI,
+    skillName: string,
+    userCompetencyLevel: RubricLevel,
+    aspirationsGoals: string,
+    suggestedJobTitles: string[] // Added suggestedJobTitles
+  ) => Promise<GrowthPlan>;
+  suggestJobTitles: (genAI: GoogleGenAI, skillsWithRatings: { skillName: string; rating: RubricLevel }[]) => Promise<SuggestedJobsResponse>;
 }
 
 // Updated AppStep
@@ -121,6 +136,9 @@ export interface Rater {
   isSelf: boolean; // true if this is the user's own rating
 }
 
+export const SELF_ASSESSMENT_RATER_ID = 'self';
+
+
 export interface SkillRatingEntry {
   raterId: string;
   rating: RubricLevel;
@@ -141,9 +159,21 @@ export interface AppExportData {
   suggestedJobTitles: string[];
   activeTab?: ActiveTabType; // Save active tab
   activeRaterId?: string; // Save active rater ID
+  comparisonRaterIds?: string[]; // Save comparison rater IDs
+  showAverageOnRadar?: boolean; // Save show average preference
   appVersion?: string;
+  // We don't export attributions as they are tied to a specific API call instance
 }
 
 export enum RadarViewMode {
-  INDIVIDUAL = "Individual",
+  INDIVIDUAL = "Individual", // Represents viewing a single rater, though not explicitly used as a state.
+  COMPARISON = "Comparison"  // Represents viewing multiple raters.
+}
+
+// Data structure for passing processed rater data to the SkillsRadarChart
+export interface RadarDisplaySeries {
+  key: string; // Unique key for Recharts (e.g., "rater_self", "rater_peer123", "average")
+  name: string; // Display name for legend (e.g., "Self-Assessed", "Peer (John)", "Average")
+  color: string; // Hex color code
+  isAverage?: boolean; // Flag for styling average line differently if needed
 }

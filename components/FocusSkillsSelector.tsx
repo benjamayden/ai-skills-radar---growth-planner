@@ -16,7 +16,7 @@ const FocusSkillsSelector: React.FC<FocusSkillsSelectorProps> = ({ skills, selec
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Select Focus Skills for Growth (Up to {MAX_FOCUS_SKILLS})</h3>
       {skills.length === 0 && <p className="text-gray-500 dark:text-gray-400">No skills identified yet.</p>}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {skills.map((skill) => {
           const isSelected = selectedSkills.includes(skill.id);
           return (

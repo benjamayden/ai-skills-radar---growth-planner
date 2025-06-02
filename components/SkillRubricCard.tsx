@@ -10,7 +10,6 @@ interface SkillRubricCardProps {
   allRatingsSummary?: string;
 }
 
-// Wrapped with React.forwardRef
 const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>(({ 
   skillData, 
   currentRatingForActiveRater, 
@@ -21,7 +20,6 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
   const { id, name, category, rubric } = skillData;
 
   return (
-    // Attached the ref to the main div
     <div ref={ref} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-4 flex flex-col justify-between">
       <div>
         <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{name}</h3>
@@ -35,12 +33,33 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
                 return null; 
             }
             const description = rubric[levelKey as keyof Omit<Rubric, 'skillId'>];
+            const isSelected = currentRatingForActiveRater === level;
 
             return (
-              <div key={level} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600">
-                <p className="font-medium text-gray-700 dark:text-gray-200">{level}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">{description}</p>
-              </div>
+              <button
+                key={level}
+                onClick={() => !disabled && onRateSkill(id, level)}
+                disabled={disabled}
+                aria-pressed={isSelected}
+                className={`w-full text-left p-3 rounded-md border transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800
+                  ${isSelected 
+                    ? 'bg-primary-50 dark:bg-primary-700 dark:bg-opacity-30 border-primary-500 dark:border-primary-400 ring-1 ring-primary-500 dark:ring-primary-400' 
+                    : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-gray-300 dark:hover:border-gray-500 focus:ring-primary-300 dark:focus:ring-primary-600'}
+                  ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+              >
+                <div className="flex justify-between items-center">
+                  <p className={`font-medium ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-200'}`}>{level}</p>
+                  {isSelected && (
+                    <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <p className={`text-sm mt-1 ${isSelected ? 'text-primary-600 dark:text-primary-300' : 'text-gray-600 dark:text-gray-300'}`}>
+                  {description}
+                </p>
+              </button>
             );
           })}
         </div>
@@ -53,27 +72,7 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
                 <p>{allRatingsSummary}</p>
             </div>
         )}
-        <div className="print-hide"> {/* Added print-hide to this container */}
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rate proficiency (for active rater):</p>
-          <div className="flex flex-wrap gap-2">
-            {RUBRIC_LEVELS_ORDERED.map((level) => (
-              <button
-                key={level}
-                onClick={() => onRateSkill(id, level)}
-                disabled={disabled}
-                className={`px-4 py-2 text-sm rounded-md border transition-colors
-                  ${currentRatingForActiveRater === level 
-                    ? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500' 
-                    : 'bg-white text-primary-700 border-primary-300 hover:bg-primary-100 dark:bg-gray-600 dark:text-primary-300 dark:border-gray-500 dark:hover:bg-gray-500'}
-                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}  
-                `}
-                aria-pressed={currentRatingForActiveRater === level}
-              >
-                {level}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Rating buttons previously here are now removed as per user request */}
       </div>
     </div>
   );

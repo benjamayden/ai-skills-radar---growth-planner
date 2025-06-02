@@ -1,6 +1,6 @@
-
-import React from 'react';
-import { GrowthPlan, GroundingChunk } from '../types';
+import React from "react";
+import { GrowthPlan, GroundingChunk } from "../types";
+import ReactMarkdown from "react-markdown";
 
 interface GrowthPlanDisplayProps {
   growthPlans: GrowthPlan[];
@@ -23,33 +23,78 @@ const AttributionLink: React.FC<{ chunk: GroundingChunk }> = ({ chunk }) => {
   return null;
 };
 
-const GrowthPlanDisplay: React.FC<GrowthPlanDisplayProps> = ({ growthPlans }) => {
+const GrowthPlanDisplay: React.FC<GrowthPlanDisplayProps> = ({
+  growthPlans,
+}) => {
   if (!growthPlans || growthPlans.length === 0) {
-    return <p className="text-center text-gray-500 dark:text-gray-400">No growth plan data available.</p>;
+    return (
+      <p className="text-center text-gray-500 dark:text-gray-400">
+        No growth plan data available.
+      </p>
+    );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {growthPlans.map((plan, index) => (
-        <div key={index} className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <h3 className="text-2xl font-semibold text-primary-700 dark:text-primary-400 mb-4">Growth Plan: {plan.skillName}</h3>
-          
+        <div
+          key={index}
+          className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+        >
+          <h3 className="text-2xl font-semibold text-primary-700 dark:text-primary-400 mb-4">
+            Growth Plan: {plan.skillName}
+          </h3>
+
           <div className="mb-6">
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Understanding Your Current Level</h4>
-            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{plan.currentProficiencyContext || "Details about your current standing could not be generated."}</p>
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Understanding Your Current Level
+            </h4>
+            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap flex flex-col gap-2">
+              <ReactMarkdown
+                components={{
+                  ul: ({node, ...props}) => <ul className="list-disc ml-6 mb-6 flex flex-col gap-1" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal ml-6 mb-6 flex flex-col gap-1" {...props} />,
+                  li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                  p: ({node, ...props}) => <p className="" {...props} />,
+                }}
+              >
+                {plan.currentProficiencyContext ||
+                  "Details about your current standing could not be generated."}
+              </ReactMarkdown>
+            </div>
           </div>
 
           <div className="mb-6">
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Developing Towards Your Goals</h4>
-            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{plan.targetProficiencyContext || "Details for developing towards your goals could not be generated."}</p>
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Developing Towards Your Goals
+            </h4>
+            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap flex flex-col gap-2">
+              <ReactMarkdown
+                components={{
+                  ul: ({node, ...props}) => <ul className="list-disc ml-6 mb-6 flex flex-col gap-1" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal ml-6 mb-6 flex flex-col gap-1" {...props} />,
+                  li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                }}
+              >
+                {plan.targetProficiencyContext || "Details for developing towards your goals could not be generated."}
+              </ReactMarkdown>
+            </div>
           </div>
 
           <div>
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Learning Resources</h4>
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+              Learning Resources
+            </h4>
             {plan.learningResources && plan.learningResources.length > 0 ? (
               <ul className="space-y-3">
                 {plan.learningResources.map((resource, rIndex) => (
-                  <li key={rIndex} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600 hover:shadow-sm transition-shadow">
+                  <li
+                    key={rIndex}
+                    className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600 hover:shadow-sm transition-shadow"
+                  >
                     <a
                       href={resource.url}
                       target="_blank"
@@ -58,18 +103,24 @@ const GrowthPlanDisplay: React.FC<GrowthPlanDisplayProps> = ({ growthPlans }) =>
                     >
                       {resource.title}
                     </a>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{resource.type}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {resource.type}
+                    </p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-500 dark:text-gray-400">No specific learning resources found.</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                No specific learning resources found.
+              </p>
             )}
           </div>
-          
+
           {plan.searchAttributions && plan.searchAttributions.length > 0 && (
             <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <h5 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">Powered by Google Search (Attributions):</h5>
+              <h5 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                Powered by Google Search (Attributions):
+              </h5>
               <div className="flex flex-wrap">
                 {plan.searchAttributions.map((chunk, cIndex) => (
                   <AttributionLink key={cIndex} chunk={chunk} />
