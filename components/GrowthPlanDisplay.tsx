@@ -16,7 +16,8 @@ const AttributionLink: React.FC<{ chunk: GroundingChunk }> = ({ chunk }) => {
         className="text-xs text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 hover:underline mr-2 mb-1 inline-block bg-primary-100 dark:bg-primary-700 dark:bg-opacity-50 px-2 py-0.5 rounded"
         title={chunk.web.title}
       >
-        Source: {new URL(chunk.web.uri).hostname}
+        {chunk.web.title}
+        {/* Source: {new URL(chunk.web.uri).hostname} */}
       </a>
     );
   }
@@ -119,7 +120,7 @@ const GrowthPlanDisplay: React.FC<GrowthPlanDisplayProps> = ({
           {plan.searchAttributions && plan.searchAttributions.length > 0 && (
             <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               <h5 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                Powered by Google Search (Attributions):
+                Sources:
               </h5>
               <div className="flex flex-wrap">
                 {plan.searchAttributions.map((chunk, cIndex) => (
