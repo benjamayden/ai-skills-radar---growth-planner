@@ -30,15 +30,13 @@ import {
 import { geminiService } from "./services/geminiService";
 
 import ApiKeyInput from "./components/ApiKeyInput";
-import UserInputForm from "./components/UserInputForm";
 import LoadingIndicator from "./components/LoadingIndicator";
-import SkillsRadarChart from "./components/SkillsRadarChart";
-import SkillRubricCard from "./components/SkillRubricCard";
-import FocusSkillsSelector from "./components/FocusSkillsSelector";
-import GrowthPlanDisplay from "./components/GrowthPlanDisplay";
-import SuggestedJobs from "./components/SuggestedJobs";
-import RaterManager from "./components/RaterManager";
 import ThemeToggle from "./components/ThemeToggle";
+import SkillsRadarAndRubrics from "./components/SkillsRadarAndRubrics";
+import TabDetails from "./pages/TabDetails";
+import TabRadar from "./pages/TabRadar";
+import TabGrowth from "./pages/TabGrowth";
+import TabRadarAndRubrics from "./pages/TabRadarAndRubrics";
 
 const APP_VERSION = "1.11.0"; // Version for Rubric Cleanup & Loading Msg Cycle
 
@@ -234,7 +232,7 @@ const App: React.FC = () => {
         setIsLoading(false);
       }
     },
-    [userInput, activeTab]
+    []
   );
 
   useEffect(() => {
@@ -385,7 +383,11 @@ const App: React.FC = () => {
         if (raterIndex > -1) {
           skillRatings[raterIndex] = { ...skillRatings[raterIndex], rating };
         } else {
-          skillRatings.push({ raterId: activeRaterId, rating });
+          skillRatings.push({
+            id: Date.now().toString() + Math.random().toString(36).substring(2),
+            raterId: activeRaterId,
+            rating,
+          });
         }
         newRatings[skillId] = skillRatings;
         return newRatings;
@@ -624,7 +626,7 @@ const App: React.FC = () => {
       activeComparisonRatersDetails.forEach((rater) => {
         const seriesKey = `rater_${rater.id}`;
         const ratingEntry = userRatings[skill.id]?.find(
-          (r) => r.raterId === r.id
+          (r) => r.raterId === rater.id
         );
         skillEntry[seriesKey] = ratingEntry
           ? RUBRIC_LEVEL_MAP[ratingEntry.rating]
@@ -636,7 +638,7 @@ const App: React.FC = () => {
         let countRatings = 0;
         activeComparisonRatersDetails.forEach((rater) => {
           const ratingEntry = userRatings[skill.id]?.find(
-            (r) => r.raterId === r.id
+            (r) => r.raterId === rater.id // Fix: use rater.id instead of r.id
           );
           if (ratingEntry) {
             sumRatings += RUBRIC_LEVEL_MAP[ratingEntry.rating];
@@ -842,8 +844,6 @@ const App: React.FC = () => {
   );
 
   const renderMainViewContent = () => {
-    const activeRaterForRubricDisplay =
-      raters.find((r) => r.id === activeRaterId) || initialSelfRater;
     const { chartDataForRecharts, seriesInfoForChart } =
       prepareRadarChartData();
 
@@ -858,7 +858,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case "details":
         return (
-          <UserInputForm
+          <TabDetails
             onSubmit={handleUserInputSubmit}
             loading={isProcessingSkills}
             initialData={userInput}
@@ -866,145 +866,51 @@ const App: React.FC = () => {
         );
       case "radar":
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-2 space-y-6 radar-column-print">
-              <RaterManager
-                raters={raters}
-                activeRaterId={activeRaterId}
-                onAddRater={handleAddRater}
-                onSelectRater={setActiveRaterId}
-                comparisonRaterIds={comparisonRaterIds}
-                onToggleComparisonRater={handleToggleComparisonRater}
-                showAverageOnRadar={showAverageOnRadar}
-                onToggleShowAverage={handleToggleShowAverage}
-                className="print-hide"
-              />
-              <SkillsRadarChart
-                chartDataForRecharts={chartDataForRecharts}
-                seriesInfoForChart={seriesInfoForChart}
-                theme={theme}
-                onSkillLabelClick={handleRadarSkillClick}
-              />
-              <div className="print-skills-list hidden print:block space-y-1 mt-4">
-                <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Skills Overview ({activeRaterForRubricDisplay.name}):
-                </h4>
-                {identifiedSkills.map((skill) => {
-                  const rating = getRatingForSkillCard(skill.id);
-                  return (
-                    <div
-                      key={skill.id}
-                      className="text-sm text-gray-600 dark:text-gray-400"
-                    >
-                      <strong>{skill.name}:</strong> {rating || "Not Rated"}
-                    </div>
-                  );
-                })}
-              </div>
-              <button
-                onClick={handlePrintForFeedback}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-md shadow-md print-hide"
-              >
-                Print Rubrics & Active Rater Overview
-              </button>
-            </div>
-            <div className="lg:col-span-2 space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 rubrics-column-print">
-              <div className="hidden print:block print-only-header mb-4 p-2 border-b border-gray-300">
-                <p className="text-sm">
-                  <strong>Rater for Rubrics:</strong>{" "}
-                  {activeRaterForRubricDisplay.name}
-                </p>
-              </div>
-              {isProcessingSkills ? (
-                <LoadingIndicator message={loadingMessage} />
-              ) : identifiedSkills.length > 0 ? (
-                identifiedSkills.map((skill) => (
-                  <div
-                    key={skill.id}
-                    className="skill-rubric-card-print-wrapper"
-                    ref={(el) => {
-                      rubricCardRefs.current[skill.id] = el;
-                    }}
-                  >
-                    <SkillRubricCard
-                      skillData={skill}
-                      currentRatingForActiveRater={getRatingForSkillCard(
-                        skill.id
-                      )}
-                      onRateSkill={handleRateSkill}
-                      allRatingsSummary={getAllRatingsSummaryForSkill(skill.id)}
-                    />
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-10">
-                  No skills identified yet. Go to "My Details" to generate
-                  skills.
-                </p>
-              )}
-            </div>
-          </div>
+          <TabRadar
+            raters={raters}
+            activeRaterId={activeRaterId}
+            onAddRater={handleAddRater}
+            onSelectRater={setActiveRaterId}
+            comparisonRaterIds={comparisonRaterIds}
+            onToggleComparisonRater={handleToggleComparisonRater}
+            showAverageOnRadar={showAverageOnRadar}
+            onToggleShowAverage={handleToggleShowAverage}
+            chartDataForRecharts={chartDataForRecharts}
+            seriesInfoForChart={seriesInfoForChart}
+            theme={theme}
+            onSkillLabelClick={handleRadarSkillClick}
+            identifiedSkills={identifiedSkills}
+            getRatingForSkillCard={getRatingForSkillCard}
+            handleRateSkill={handleRateSkill}
+            getAllRatingsSummaryForSkill={getAllRatingsSummaryForSkill}
+            isProcessingSkills={isProcessingSkills}
+            loadingMessage={loadingMessage}
+            rubricCardRefs={rubricCardRefs}
+          />
         );
       case "growth":
         return (
-          <div className="space-y-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <FocusSkillsSelector
-                skills={identifiedSkills}
-                selectedSkills={focusSkills}
-                onSkillToggle={handleSkillToggleFocus}
-              />
-              {!isProcessingGrowth && suggestedJobTitles.length > 0 && (
-                <div className="results-section-jobs suggested-jobs-print">
-                  <SuggestedJobs jobTitles={suggestedJobTitles} />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-6">
-              <button
-                onClick={handleGenerateGrowthPlansAndJobs}
-                disabled={focusSkills.length === 0 || isLoading || !genAI}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-md shadow-md disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed transition duration-150 ease-in-out print-hide"
-              >
-                {isProcessingGrowth
-                  ? "Generating..."
-                  : "Generate Growth Plans & Job Suggestions"}
-              </button>
-              {isProcessingGrowth && (
-                <LoadingIndicator message={loadingMessage} />
-              )}
-
-              {!isProcessingGrowth && growthPlans.length > 0 && (
-                <div className="results-section-growth-plans">
-                  <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4 mt-8">
-                    Personalized Growth Plans
-                  </h3>
-                  {growthPlans.map((plan, index) => (
-                    <div key={index} className="growth-plan-display-item-print">
-                      <GrowthPlanDisplay growthPlans={[plan]} />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {!isProcessingGrowth &&
-                focusSkills.length > 0 &&
-                growthPlans.length === 0 &&
-                suggestedJobTitles.length === 0 && (
-                  <p className="text-center text-gray-500 dark:text-gray-400 py-6">
-                    Select focus skills and click "Generate" to see your growth
-                    plan and job suggestions. {!genAI && "API Key needed."}
-                  </p>
-                )}
-              {identifiedSkills.length === 0 && (
-                <p className="text-center text-gray-500 dark:text-gray-400 py-10">
-                  Please generate skills from the "My Details" tab first.
-                </p>
-              )}
-            </div>
-          </div>
+          <TabGrowth
+            identifiedSkills={identifiedSkills}
+            focusSkills={focusSkills}
+            onSkillToggleFocus={handleSkillToggleFocus}
+            isProcessingGrowth={isProcessingGrowth}
+            suggestedJobTitles={suggestedJobTitles}
+            growthPlans={growthPlans}
+            loadingMessage={loadingMessage}
+            handleGenerateGrowthPlansAndJobs={handleGenerateGrowthPlansAndJobs}
+            genAI={genAI}
+          />
         );
+      case "radarAndRubrics": {
+        return (
+          <TabRadarAndRubrics
+            skills={identifiedSkills}
+            radarData={seriesInfoForChart}
+            chartDataForRecharts={chartDataForRecharts}
+          />
+        );
+      }
       default:
         return null;
     }
@@ -1055,7 +961,7 @@ const App: React.FC = () => {
 
     if (currentStep === AppStep.USER_DATA_INPUT) {
       return (
-        <UserInputForm
+        <TabDetails
           onSubmit={handleUserInputSubmit}
           loading={isProcessingSkillsForUserInput}
           initialData={userInput}
@@ -1092,6 +998,13 @@ const App: React.FC = () => {
               >
                 Growth Plan
               </TabButton>
+              <TabButton
+                tabId="radarAndRubrics"
+                currentTab={activeTab}
+                onClick={() => setActiveTab("radarAndRubrics")}
+              >
+                Radar & Rubrics
+              </TabButton>
             </nav>
           </div>
           <div className="px-0 py-0 md:px-6 md:py-4">
@@ -1114,17 +1027,48 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <header className="mb-6 relative print-hide">
-        <div className="text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight">
-            {APP_TITLE}
-          </h1>
-          <p className="mt-2 text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Discover your strengths, identify growth areas, and align your
-            career with market demands.
-          </p>
-        </div>
-        <div className="absolute top-0 right-0 p-1 flex space-x-1">
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+        <div className="flex gap-4 items-center justify-between max-w-7xl mx-auto">
+          <div className="flex gap-4 items-end">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight">
+              {APP_TITLE}
+            </h1>
+            <p className=" text-base md:text-lg text-gray-600 dark:text-gray-400">
+              Align yourself with market demands.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4 print-hide">
+            <button
+              onClick={() => resetAllApplicationData(genAI !== null)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Start Over
+            </button>
+            <button
+              onClick={handleExportData}
+              className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              disabled={
+                !userInput &&
+                (!identifiedSkills || identifiedSkills.length === 0)
+              }
+            >
+              Export Data (JSON)
+            </button>
+            <button
+              onClick={triggerImport}
+              className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Import Data (JSON)
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportData}
+              accept=".json"
+              className="hidden"
+              aria-hidden="true"
+            />
+            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+          </div>
         </div>
       </header>
 
@@ -1133,38 +1077,6 @@ const App: React.FC = () => {
           currentStep === AppStep.MAIN_VIEW ? "max-w-7xl" : "max-w-xl"
         } mx-auto`}
       >
-        <div className="mb-6 flex flex-wrap justify-center gap-2 md:gap-4 print-hide">
-          <button
-            onClick={() => resetAllApplicationData(genAI !== null)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
-            Start Over
-          </button>
-          <button
-            onClick={handleExportData}
-            className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            disabled={
-              !userInput && (!identifiedSkills || identifiedSkills.length === 0)
-            }
-          >
-            Export Data (JSON)
-          </button>
-          <button
-            onClick={triggerImport}
-            className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Import Data (JSON)
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportData}
-            accept=".json"
-            className="hidden"
-            aria-hidden="true"
-          />
-        </div>
-
         {errorMessage && (
           <div
             className="mb-6 p-4 bg-red-100 border-red-400 text-red-700 rounded-md shadow-md dark:bg-red-900 dark:border-red-700 dark:text-red-300 print-hide"

@@ -126,7 +126,7 @@ export enum AppStep {
 }
 
 // New type for active tab
-export type ActiveTabType = 'details' | 'radar' | 'growth';
+export type ActiveTabType = 'details' | 'radar' | 'growth' | 'radarAndRubrics';
 
 
 // New types for multi-rater feedback
@@ -140,6 +140,7 @@ export const SELF_ASSESSMENT_RATER_ID = 'self';
 
 
 export interface SkillRatingEntry {
+  id: string;
   raterId: string;
   rating: RubricLevel;
 }

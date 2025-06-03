@@ -136,7 +136,7 @@ Do not include any text or comments outside the main JSON object. The entire res
       },
     });
     
-    const parsedData = parseJsonFromText(response.text);
+    const parsedData = parseJsonFromText(response.text ?? "");
 
     if (!parsedData.skills || !Array.isArray(parsedData.skills)) {
       console.error("AI response is missing 'skills' array or it's not an array. Parsed data:", parsedData);
@@ -259,7 +259,7 @@ Structure your entire response clearly under these specific headers.
     const learningResources: LearningResource[] = [];
     const resourceRegex = /Resource Title: ([\s\S]*?)\nResource URL: (https?:\/\/[^\s]+)\nResource Type: ([\s\S]*?)(?:\n---|$)/gs;
     let match;
-    while ((match = resourceRegex.exec(textResponse)) !== null) {
+    while ((match = resourceRegex.exec(textResponse ?? "")) !== null) {
       const title = match[1].trim();
       const url = match[2].trim();
       const type = match[3].trim();
@@ -271,12 +271,12 @@ Structure your entire response clearly under these specific headers.
     let currentProficiencyContext = "Detailed analysis for your current standing could not be generated.";
     let targetProficiencyContext = "Detailed analysis for developing towards your goals could not be generated.";
 
-    const currentStandingMatch = textResponse.match(/### YOUR CURRENT STANDING ###\s*([\s\S]*?)(?=\n### DEVELOPING TOWARDS YOUR GOALS ###|$)/);
+    const currentStandingMatch = (textResponse ?? "").match(/### YOUR CURRENT STANDING ###\s*([\s\S]*?)(?=\n### DEVELOPING TOWARDS YOUR GOALS ###|$)/);
     if (currentStandingMatch && currentStandingMatch[1]) {
       currentProficiencyContext = stripReferences(currentStandingMatch[1].trim());
     }
 
-    const targetGoalsMatch = textResponse.match(/### DEVELOPING TOWARDS YOUR GOALS ###\s*([\s\S]*?)(?=\n### LEARNING RESOURCES ###|$)/);
+    const targetGoalsMatch = (textResponse ?? "").match(/### DEVELOPING TOWARDS YOUR GOALS ###\s*([\s\S]*?)(?=\n### LEARNING RESOURCES ###|$)/);
     if (targetGoalsMatch && targetGoalsMatch[1]) {
       targetProficiencyContext = stripReferences(targetGoalsMatch[1].trim());
     }
@@ -336,7 +336,7 @@ Ensure the entire response is a valid JSON object and contains only the list of 
       },
     });
     
-    const parsedData = parseJsonFromText(response.text);
+    const parsedData = parseJsonFromText(response.text ?? "");
 
     if (!parsedData.jobTitles || !Array.isArray(parsedData.jobTitles)) {
       throw new Error("AI response is missing 'jobTitles' array or it's not a valid array. Check AI output format.");

@@ -2,7 +2,7 @@
 import { GeminiSafetySetting } from './types';
 import { HarmCategory, HarmBlockThreshold } from "@google/genai";
 
-export const APP_TITLE = "AI Skills Radar & Growth Planner";
+export const APP_TITLE = "Skilldar.ai";
 export const MAX_FOCUS_SKILLS = 3;
 
 export const DEFAULT_SAFETY_SETTINGS: GeminiSafetySetting[] = [
