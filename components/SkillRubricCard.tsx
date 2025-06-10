@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { IdentifiedSkillData, RubricLevel, RUBRIC_LEVELS_ORDERED, Rubric } from '../types';
+import { IdentifiedSkillData, RubricLevel, RUBRIC_LEVELS_ORDERED, Rubric, SkillStatus, SkillMasteryCheck } from '../types';
+import SkillMasteryIndicator from './SkillMasteryIndicator';
 
 interface SkillRubricCardProps {
   skillData: IdentifiedSkillData;
@@ -8,6 +9,9 @@ interface SkillRubricCardProps {
   onRateSkill: (skillId: string, rating: RubricLevel) => void;
   disabled?: boolean;
   allRatingsSummary?: string;
+  // Skill Mastery Props
+  skillStatus?: SkillStatus;
+  masteryCheck?: SkillMasteryCheck;
 }
 
 const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>(({ 
@@ -15,7 +19,9 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
   currentRatingForActiveRater, 
   onRateSkill, 
   disabled,
-  allRatingsSummary 
+  allRatingsSummary,
+  skillStatus,
+  masteryCheck 
 }, ref) => {
   const { id, name, category, rubric } = skillData;
 
@@ -23,12 +29,29 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
     <div ref={ref} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-4 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{name}</h3>
-          {skillData.isUniversalEnabler && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-              🎯 Universal Enabler
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{name}</h3>
+            {skillStatus && (
+              <SkillMasteryIndicator 
+                skillId={id} 
+                skillStatuses={{ [id]: skillStatus }} 
+                size="md" 
+              />
+            )}
+            {masteryCheck?.canBeMastered && skillStatus !== SkillStatus.MASTERED && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                             bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200">
+                ✓ Ready for Mastery
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {skillData.isUniversalEnabler && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                🎯 Universal Enabler
+              </span>
+            )}
+          </div>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{category}</p>
 

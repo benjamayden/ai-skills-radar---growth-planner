@@ -1,0 +1,294 @@
+{
+  "version": "1.13.0",
+  "exportDate": "2025-06-10T12:00:00.000Z",
+  "userInput": {
+    "hardSkills": "Python, JavaScript, React, Machine Learning, Data Analysis",
+    "resumeInfo": "Senior Software Engineer with 5 years of experience in web development and AI/ML",
+    "aspirationsThrive": "Leading technical teams and architecting scalable systems",
+    "aspirationsGoals": "Become a Principal Engineer and mentor junior developers",
+    "industryContext": "Technology/Software Development"
+  },
+  "skillBank": {
+    "activeSkills": [
+      "skill_communication",
+      "skill_collaboration", 
+      "skill_problem_solving",
+      "skill_adaptability",
+      "skill_continuous_learning",
+      "skill_leadership",
+      "skill_python",
+      "skill_javascript",
+      "skill_react",
+      "skill_machine_learning",
+      "skill_data_analysis",
+      "skill_system_design"
+    ],
+    "masteredSkills": [
+      "skill_html_css"
+    ],
+    "allSkillsData": [
+      {
+        "id": "skill_communication",
+        "name": "Communication",
+        "description": "Ability to convey information clearly and effectively to different audiences",
+        "category": "Universal Growth Enabler",
+        "isUniversalEnabler": true,
+        "rubric": {
+          "foundational": "Can communicate basic information clearly in familiar contexts",
+          "intermediate": "Communicates effectively across different mediums and adapts style to audience",
+          "advanced": "Facilitates complex discussions and presents ideas persuasively to diverse stakeholders",
+          "expert": "Influences organizational communication standards and mentors others in communication excellence"
+        }
+      },
+      {
+        "id": "skill_collaboration",
+        "name": "Collaboration",
+        "description": "Working effectively with others to achieve common goals",
+        "category": "Universal Growth Enabler", 
+        "isUniversalEnabler": true,
+        "rubric": {
+          "foundational": "Participates constructively in team activities and follows team protocols",
+          "intermediate": "Actively contributes to team success and helps resolve conflicts",
+          "advanced": "Leads collaborative initiatives and builds high-performing teams",
+          "expert": "Transforms organizational collaboration culture and develops collaboration frameworks"
+        }
+      },
+      {
+        "id": "skill_problem_solving",
+        "name": "Problem Solving",
+        "description": "Analyzing complex issues and developing effective solutions",
+        "category": "Universal Growth Enabler",
+        "isUniversalEnabler": true,
+        "rubric": {
+          "foundational": "Identifies problems and follows established procedures to resolve them",
+          "intermediate": "Analyzes root causes and develops creative solutions to complex problems",
+          "advanced": "Designs systematic approaches to solve ambiguous and multi-faceted challenges",
+          "expert": "Pioneers innovative problem-solving methodologies and transforms organizational approaches"
+        }
+      },
+      {
+        "id": "skill_adaptability",
+        "name": "Adaptability",
+        "description": "Adjusting effectively to changing circumstances and environments",
+        "category": "Universal Growth Enabler",
+        "isUniversalEnabler": true,
+        "rubric": {
+          "foundational": "Adjusts to routine changes and learns new procedures when guided",
+          "intermediate": "Proactively adapts to changing priorities and embraces new technologies",
+          "advanced": "Leads change initiatives and helps others navigate complex transitions",
+          "expert": "Shapes organizational change strategy and builds adaptive capabilities across teams"
+        }
+      },
+      {
+        "id": "skill_continuous_learning",
+        "name": "Continuous Learning",
+        "description": "Commitment to ongoing skill development and knowledge acquisition",
+        "category": "Universal Growth Enabler",
+        "isUniversalEnabler": true,
+        "rubric": {
+          "foundational": "Participates in learning opportunities and applies new knowledge with guidance",
+          "intermediate": "Self-directs learning and stays current with industry trends",
+          "advanced": "Creates learning strategies for teams and identifies emerging skill gaps",
+          "expert": "Establishes organizational learning culture and develops talent development programs"
+        }
+      },
+      {
+        "id": "skill_leadership",
+        "name": "Leadership",
+        "description": "Inspiring and guiding others toward achieving shared objectives",
+        "category": "Universal Growth Enabler",
+        "isUniversalEnabler": true,
+        "rubric": {
+          "foundational": "Demonstrates reliability and takes ownership of individual responsibilities",
+          "intermediate": "Influences peers positively and takes initiative on projects",
+          "advanced": "Leads teams effectively and develops others' leadership capabilities",
+          "expert": "Drives organizational vision and transforms leadership culture across the organization"
+        }
+      },
+      {
+        "id": "skill_python",
+        "name": "Python Programming", 
+        "description": "Proficiency in Python programming language for various applications",
+        "category": "Technical Skills",
+        "rubric": {
+          "foundational": "Can write basic Python scripts and understand fundamental syntax",
+          "intermediate": "Develops moderate complexity applications using Python frameworks",
+          "advanced": "Architects scalable Python systems and optimizes performance",
+          "expert": "Leads Python best practices and contributes to open source Python projects"
+        }
+      },
+      {
+        "id": "skill_javascript",
+        "name": "JavaScript Development",
+        "description": "Modern JavaScript programming for web and application development",
+        "category": "Technical Skills",
+        "rubric": {
+          "foundational": "Understands JavaScript basics and can modify existing code",
+          "intermediate": "Builds interactive web applications using modern JavaScript",
+          "advanced": "Develops complex JavaScript architectures and performance optimizations",
+          "expert": "Defines JavaScript standards and mentors teams on advanced patterns"
+        }
+      },
+      {
+        "id": "skill_react",
+        "name": "React Framework",
+        "description": "Building user interfaces with React and its ecosystem",
+        "category": "Technical Skills",
+        "rubric": {
+          "foundational": "Can create basic React components and understand JSX",
+          "intermediate": "Develops full React applications with state management",
+          "advanced": "Architects complex React systems and implements performance optimizations",
+          "expert": "Leads React architectural decisions and contributes to React community"
+        }
+      },
+      {
+        "id": "skill_machine_learning",
+        "name": "Machine Learning",
+        "description": "Designing and implementing machine learning solutions",
+        "category": "Technical Skills",
+        "rubric": {
+          "foundational": "Understands ML concepts and can apply basic algorithms",
+          "intermediate": "Develops and deploys ML models for real-world problems",
+          "advanced": "Designs complex ML systems and optimizes model performance",
+          "expert": "Leads ML strategy and develops novel ML methodologies"
+        }
+      },
+      {
+        "id": "skill_data_analysis",
+        "name": "Data Analysis",
+        "description": "Extracting insights from data using statistical and analytical methods",
+        "category": "Technical Skills", 
+        "rubric": {
+          "foundational": "Can perform basic data manipulation and create simple visualizations",
+          "intermediate": "Conducts comprehensive data analysis and presents insights effectively",
+          "advanced": "Designs analytical frameworks and leads data-driven decision making",
+          "expert": "Establishes organizational data strategy and develops advanced analytical capabilities"
+        }
+      },
+      {
+        "id": "skill_system_design",
+        "name": "System Design",
+        "description": "Architecting scalable and reliable distributed systems",
+        "category": "Technical Skills",
+        "rubric": {
+          "foundational": "Understands basic system components and design patterns",
+          "intermediate": "Designs moderate complexity systems with proper abstractions",
+          "advanced": "Architects large-scale distributed systems with high availability",
+          "expert": "Defines system design standards and influences industry best practices"
+        }
+      },
+      {
+        "id": "skill_html_css",
+        "name": "HTML & CSS",
+        "description": "Frontend markup and styling technologies",
+        "category": "Technical Skills",
+        "rubric": {
+          "foundational": "Can create basic web pages with HTML and CSS",
+          "intermediate": "Develops responsive and accessible web interfaces",
+          "advanced": "Creates complex CSS architectures and advanced animations",
+          "expert": "Leads frontend standards and contributes to web technology evolution"
+        }
+      }
+    ]
+  },
+  "skillStatuses": {
+    "skill_communication": "ACTIVE",
+    "skill_collaboration": "ACTIVE", 
+    "skill_problem_solving": "ACTIVE",
+    "skill_adaptability": "ACTIVE",
+    "skill_continuous_learning": "ACTIVE",
+    "skill_leadership": "ACTIVE",
+    "skill_python": "ACTIVE",
+    "skill_javascript": "ACTIVE",
+    "skill_react": "ACTIVE",
+    "skill_machine_learning": "ACTIVE",
+    "skill_data_analysis": "ACTIVE",
+    "skill_system_design": "ACTIVE",
+    "skill_html_css": "MASTERED"
+  },
+  "raters": [
+    {
+      "id": "rater_self",
+      "name": "Self-Assessed",
+      "isSelf": true
+    },
+    {
+      "id": "rater_manager",
+      "name": "Direct Manager",
+      "isSelf": false
+    },
+    {
+      "id": "rater_peer1",
+      "name": "Senior Colleague",
+      "isSelf": false
+    },
+    {
+      "id": "rater_peer2", 
+      "name": "Tech Lead",
+      "isSelf": false
+    },
+    {
+      "id": "rater_peer3",
+      "name": "Project Partner",
+      "isSelf": false
+    }
+  ],
+  "userRatings": {
+    "skill_communication": [
+      {"raterId": "rater_self", "rating": "Advanced"},
+      {"raterId": "rater_manager", "rating": "Advanced"},
+      {"raterId": "rater_peer1", "rating": "Expert"},
+      {"raterId": "rater_peer2", "rating": "Advanced"},
+      {"raterId": "rater_peer3", "rating": "Advanced"}
+    ],
+    "skill_collaboration": [
+      {"raterId": "rater_self", "rating": "Advanced"},
+      {"raterId": "rater_manager", "rating": "Expert"},
+      {"raterId": "rater_peer1", "rating": "Advanced"},
+      {"raterId": "rater_peer2", "rating": "Advanced"},
+      {"raterId": "rater_peer3", "rating": "Expert"}
+    ],
+    "skill_python": [
+      {"raterId": "rater_self", "rating": "Expert"},
+      {"raterId": "rater_manager", "rating": "Advanced"},
+      {"raterId": "rater_peer1", "rating": "Expert"},
+      {"raterId": "rater_peer2", "rating": "Advanced"},
+      {"raterId": "rater_peer3", "rating": "Advanced"}
+    ],
+    "skill_javascript": [
+      {"raterId": "rater_self", "rating": "Advanced"},
+      {"raterId": "rater_manager", "rating": "Intermediate"},
+      {"raterId": "rater_peer1", "rating": "Advanced"},
+      {"raterId": "rater_peer2", "rating": "Intermediate"}
+    ],
+    "skill_react": [
+      {"raterId": "rater_self", "rating": "Intermediate"},
+      {"raterId": "rater_peer1", "rating": "Intermediate"},
+      {"raterId": "rater_peer2", "rating": "Foundational"}
+    ],
+    "skill_html_css": [
+      {"raterId": "rater_self", "rating": "Expert"},
+      {"raterId": "rater_manager", "rating": "Expert"},
+      {"raterId": "rater_peer1", "rating": "Expert"},
+      {"raterId": "rater_peer2", "rating": "Advanced"},
+      {"raterId": "rater_peer3", "rating": "Expert"}
+    ]
+  },
+  "focusSkills": [
+    "skill_machine_learning",
+    "skill_system_design",
+    "skill_leadership"
+  ],
+  "growthPlans": [],
+  "suggestedJobTitles": [
+    "Senior Software Engineer",
+    "Technical Lead",
+    "Principal Engineer",
+    "Engineering Manager"
+  ],
+  "theme": "light",
+  "activeTab": "radar",
+  "activeRaterId": "rater_self",
+  "comparisonRaterIds": ["rater_self", "rater_manager", "rater_peer1"],
+  "showAverageOnRadar": false
+}

@@ -146,7 +146,7 @@ const SkillsRadarChart: React.FC<SkillsRadarChartProps> = ({ chartDataForRechart
 
   return (
     <div 
-      className="w-full h-[400px] md:h-[500px] bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg print-skill-radar-component"
+      className="w-full h-[400px] md:h-[500px] bg-white dark:bg-gray-800 p-4 rounded-lg shadow print-skill-radar-component"
     >
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartDataForRecharts}>

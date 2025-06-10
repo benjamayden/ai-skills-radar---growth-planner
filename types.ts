@@ -227,3 +227,32 @@ export interface RadarDisplaySeries {
   color: string;
   isAverage?: boolean;
 }
+
+// NEW: Skill visibility and mastery tracking
+export enum SkillStatus {
+  ACTIVE = "active",           // Currently visible in radar/lists
+  MASTERED = "mastered",       // Hidden due to high proficiency, can be toggled back
+  ARCHIVED = "archived"        // Completely archived, not available for selection
+}
+
+export interface SkillMasteryCheck {
+  skillId: string;
+  canBeMastered: boolean;      // True if meets criteria (self + 3 others at Advanced/Expert)
+  ratingsSummary: {
+    selfRating?: RubricLevel;
+    otherRatings: { raterId: string; raterName: string; rating: RubricLevel }[];
+    totalHighRatings: number;  // Count of Advanced/Expert ratings
+  };
+}
+
+export interface SkillBank {
+  activeSkills: string[];      // Currently visible skill IDs (max 12)
+  masteredSkills: string[];    // Skills marked as mastered (hidden by default)
+  allSkillsData: IdentifiedSkillData[]; // Complete skill data for all skills
+}
+
+// Enhanced AppExportData to include skill banking
+export interface AppExportDataV2 extends Omit<AppExportData, 'identifiedSkills'> {
+  skillBank: SkillBank;        // Replaces the simple identifiedSkills array
+  skillStatuses: Record<string, SkillStatus>; // Track status of each skill
+}

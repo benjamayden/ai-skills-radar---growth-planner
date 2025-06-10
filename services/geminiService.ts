@@ -511,11 +511,32 @@ Focus on skills relevant to product development, UX/UI design, software developm
       };
     });
 
+    // Convert Universal Growth Enablers to SkillCandidate format
+    const universalEnablerCandidates: SkillCandidate[] = UNIVERSAL_GROWTH_ENABLERS.map((skill) => ({
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+      category: skill.category,
+      relevanceScore: 10, // Universal enablers always have max relevance
+      goalAlignment: "Essential for professional development across all career paths",
+      strategyAlignment: "Core competency required for organizational success",
+      marketImportance: "Fundamental skills valued by all employers",
+      goalRelevanceRank: 1,
+      strategyRelevanceRank: 1,
+      marketImportanceRank: 1,
+      overallRank: 1,
+      rubric: skill.rubric,
+      isUniversalEnabler: true
+    }));
+
+    // Combine AI-generated candidates with Universal Growth Enablers
+    const allCandidates = [...universalEnablerCandidates, ...processedCandidates];
+
     return {
-      skillCandidates: processedCandidates,
+      skillCandidates: allCandidates,
       summary: parsedData.summary || "Skills analysis completed",
       recommendedFocus: parsedData.recommendedFocus || processedCandidates.slice(0, 6).map(c => c.id),
-      totalGenerated: processedCandidates.length
+      totalGenerated: allCandidates.length
     };
 
   } catch (error) {

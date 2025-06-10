@@ -8,16 +8,19 @@ import {
   AppStep,
   ActiveTabType,
   Rater,
-  SkillRatingEntry,
   UserRatingsData,
   AppExportData,
+  AppExportDataV2,
   RUBRIC_LEVEL_MAP,
   MAX_RUBRIC_LEVEL_VALUE,
   SELF_ASSESSMENT_RATER_ID,
-  GroundingChunk,
   SuggestedJobsResponse,
-  ProcessedSkillsResponse,
-  RadarDisplaySeries, // Importing the shared type
+  RadarDisplaySeries,
+  SkillSelectionState,
+  SkillGenerationResponse,
+  SkillBank,
+  SkillStatus,
+  SkillMasteryCheck,
 } from "./types";
 import {
   APP_TITLE,
@@ -33,7 +36,7 @@ import ApiKeyInput from "./components/ApiKeyInput";
 import LoadingIndicator from "./components/LoadingIndicator";
 import ThemeToggle from "./components/ThemeToggle";
 import RateLimitInfo from "./components/RateLimitInfo";
-import SkillsRadarAndRubrics from "./components/SkillsRadarAndRubrics";
+import SkillSelectionInterface from "./components/SkillSelectionInterface";
 import TabDetails from "./pages/TabDetails";
 import TabRadar from "./pages/TabRadar";
 import TabGrowth from "./pages/TabGrowth";
@@ -60,11 +63,36 @@ const App: React.FC = () => {
 
   const [userInput, setUserInput] = useState<UserInputData | null>(null);
 
-  const [identifiedSkills, setIdentifiedSkills] = useState<
-    IdentifiedSkillData[]
-  >([]);
-  const [skillIdentificationAttributions, setSkillIdentificationAttributions] =
-    useState<GroundingChunk[]>([]);
+  // Skill Selection State
+  const [skillSelection, setSkillSelection] = useState<SkillSelectionState | null>(null);
+
+  // Skill Banking State - replaces simple identifiedSkills
+  const [skillBank, setSkillBank] = useState<SkillBank>({
+    activeSkills: [],
+    masteredSkills: [],
+    allSkillsData: []
+  });
+  const [skillStatuses, setSkillStatuses] = useState<Record<string, SkillStatus>>({});
+
+  // Legacy support - computed from skillBank
+  const identifiedSkills = skillBank.allSkillsData.filter(skill => 
+    skillBank.activeSkills.includes(skill.id)
+  );
+  const setIdentifiedSkills = (skills: IdentifiedSkillData[]) => {
+    setSkillBank(prev => ({
+      ...prev,
+      activeSkills: skills.map(s => s.id),
+      allSkillsData: skills
+    }));
+    // Initialize all skills as active
+    const newStatuses: Record<string, SkillStatus> = {};
+    skills.forEach(skill => {
+      newStatuses[skill.id] = SkillStatus.ACTIVE;
+    });
+    setSkillStatuses(newStatuses);
+  };
+  // const [skillIdentificationAttributions, setSkillIdentificationAttributions] =
+  //   useState<GroundingChunk[]>([]);
 
   const initialSelfRater: Rater = {
     id: SELF_ASSESSMENT_RATER_ID,
@@ -85,9 +113,9 @@ const App: React.FC = () => {
   const [focusSkills, setFocusSkills] = useState<string[]>([]);
   const [growthPlans, setGrowthPlans] = useState<GrowthPlan[]>([]);
   const [suggestedJobTitles, setSuggestedJobTitles] = useState<string[]>([]);
-  const [jobSuggestionAttributions, setJobSuggestionAttributions] = useState<
-    GroundingChunk[]
-  >([]);
+  // const [jobSuggestionAttributions, setJobSuggestionAttributions] = useState<
+  //   GroundingChunk[]
+  // >([]);
 
   const previousRatingsRef = useRef<UserRatingsData>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -276,12 +304,12 @@ const App: React.FC = () => {
     setErrorMessage(null);
     setUserInput(null);
     setIdentifiedSkills([]);
-    setSkillIdentificationAttributions([]);
+    // setSkillIdentificationAttributions([]);
     setUserRatings({});
     setFocusSkills([]);
     setGrowthPlans([]);
     setSuggestedJobTitles([]);
-    setJobSuggestionAttributions([]);
+    // setJobSuggestionAttributions([]);
     setRaters([initialSelfRater]);
     setActiveRaterId(initialSelfRater.id);
     setComparisonRaterIds([initialSelfRater.id]);
@@ -324,7 +352,7 @@ const App: React.FC = () => {
       setUserInput(data);
       setCurrentStep(AppStep.PROCESSING);
 
-      setStaticLoadingPrefix("Identifying skills: ");
+      setStaticLoadingPrefix("Generating skill candidates: ");
       setLoadingMessageQueue(CYCLING_LOADING_MESSAGES);
       setCurrentLoadingMessageIndex(0);
       // setLoadingMessage is set by useEffect
@@ -334,53 +362,34 @@ const App: React.FC = () => {
       setFocusSkills([]);
       setGrowthPlans([]);
       setSuggestedJobTitles([]);
-      setJobSuggestionAttributions([]);
+      // setJobSuggestionAttributions([]);
       rubricCardRefs.current = {};
 
       try {
-        const response: ProcessedSkillsResponse =
-          await geminiService.identifySkillsAndGenerateRubrics(genAI, data);
-        const newSkills = response.skills;
-        setSkillIdentificationAttributions(response.searchAttributions || []);
+        // Generate skill candidates instead of directly identifying skills
+        const response: SkillGenerationResponse =
+          await geminiService.generateSkillCandidates(genAI, data);
 
-        const updatedRatings: UserRatingsData = {};
-        if (newSkills && Array.isArray(newSkills)) {
-          newSkills.forEach((newSkill) => {
-            if (previousRatingsRef.current[newSkill.id]) {
-              updatedRatings[newSkill.id] =
-                previousRatingsRef.current[newSkill.id];
-            }
-          });
-        }
+        // Create skill selection state
+        const newSkillSelection: SkillSelectionState = {
+          candidates: response.skillCandidates,
+          selectedPersonalSkills: response.recommendedFocus.slice(0, 6), // Pre-select top 6
+          universalEnablers: response.skillCandidates.filter(skill => skill.isUniversalEnabler),
+          maxPersonalSkills: 6
+        };
 
-        setIdentifiedSkills(newSkills || []);
-        setUserRatings(updatedRatings);
+        setSkillSelection(newSkillSelection);
+        setCurrentStep(AppStep.SKILL_SELECTION);
+        setIsLoading(false);
 
-        if (newSkills && newSkills.length > 0) {
-          setCurrentStep(AppStep.MAIN_VIEW);
-          setActiveTab("radar");
-        } else {
-          setErrorMessage(
-            "No skills were identified. Please try refining your input, or check the AI's search capabilities."
-          );
-          setCurrentStep(
-            userInput ? AppStep.MAIN_VIEW : AppStep.USER_DATA_INPUT
-          );
-          setActiveTab("details");
-        }
       } catch (error) {
-        console.error("Error identifying skills:", error);
+        console.error("Error generating skill candidates:", error);
         setErrorMessage(
-          `Error identifying skills: ${
-            (error as Error).message
-          }. You might want to try modifying your input or check the console.`
+          `Failed to generate skill candidates: ${(error as Error).message}`
         );
-        setCurrentStep(userInput ? AppStep.MAIN_VIEW : AppStep.USER_DATA_INPUT);
-        setActiveTab("details");
+        setCurrentStep(AppStep.USER_DATA_INPUT);
       } finally {
         setIsLoading(false);
-        setLoadingMessageQueue([]);
-        setStaticLoadingPrefix("");
       }
     },
     [genAI, userRatings, userInput]
@@ -442,6 +451,66 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleSkillSelectionChange = useCallback((selectedPersonalSkillIds: string[]) => {
+    if (skillSelection) {
+      setSkillSelection({
+        ...skillSelection,
+        selectedPersonalSkills: selectedPersonalSkillIds
+      });
+    }
+  }, [skillSelection]);
+
+  const handleSkillSelectionComplete = useCallback(async (selectedPersonalSkillIds: string[]) => {
+    if (!skillSelection || !genAI) return;
+
+    setCurrentStep(AppStep.PROCESSING);
+    setStaticLoadingPrefix("Processing selected skills: ");
+    setLoadingMessageQueue(CYCLING_LOADING_MESSAGES);
+    setCurrentLoadingMessageIndex(0);
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      // Combine selected personal skills with universal enablers
+      const allSelectedSkills = [
+        ...skillSelection.universalEnablers,
+        ...skillSelection.candidates.filter(skill => 
+          selectedPersonalSkillIds.includes(skill.id) && !skill.isUniversalEnabler
+        )
+      ];
+
+      // Convert SkillCandidate[] to IdentifiedSkillData[]
+      const identifiedSkillsData: IdentifiedSkillData[] = allSelectedSkills.map(skill => ({
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        category: skill.category,
+        rubric: skill.rubric,
+        isUniversalEnabler: skill.isUniversalEnabler
+      }));
+
+      // Update ratings to preserve any existing ratings for these skills
+      const updatedRatings: UserRatingsData = {};
+      identifiedSkillsData.forEach((skill) => {
+        if (previousRatingsRef.current[skill.id]) {
+          updatedRatings[skill.id] = previousRatingsRef.current[skill.id];
+        }
+      });
+
+      setIdentifiedSkills(identifiedSkillsData);
+      setUserRatings(updatedRatings);
+      setCurrentStep(AppStep.MAIN_VIEW);
+      setActiveTab("radar");
+
+    } catch (error) {
+      console.error("Error processing skill selection:", error);
+      setErrorMessage(`Failed to process skill selection: ${(error as Error).message}`);
+      setCurrentStep(AppStep.SKILL_SELECTION);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [skillSelection, genAI, userRatings]);
+
   const handleGenerateGrowthPlansAndJobs = useCallback(async () => {
     if (!genAI || focusSkills.length === 0 || !userInput) return;
 
@@ -449,7 +518,7 @@ const App: React.FC = () => {
     setErrorMessage(null);
     setGrowthPlans([]);
     setSuggestedJobTitles([]);
-    setJobSuggestionAttributions([]);
+    // setJobSuggestionAttributions([]);
 
     setStaticLoadingPrefix("Suggesting job titles: ");
     setLoadingMessageQueue(CYCLING_LOADING_MESSAGES);
@@ -485,7 +554,7 @@ const App: React.FC = () => {
           await geminiService.suggestJobTitles(genAI, skillsForJobSuggestion);
         currentSuggestedTitles = jobResponse.titles;
         setSuggestedJobTitles(currentSuggestedTitles);
-        setJobSuggestionAttributions(jobResponse.searchAttributions || []);
+        // setJobSuggestionAttributions(jobResponse.searchAttributions || []);
       } else {
         setSuggestedJobTitles([]);
       }
@@ -680,15 +749,19 @@ const App: React.FC = () => {
   ]);
 
   const handleExportData = () => {
-    const exportData: AppExportData = {
-      appVersion: APP_VERSION,
+    const exportData: AppExportDataV2 = {
+      version: APP_VERSION,
+      exportDate: new Date().toISOString(),
       userInput,
-      identifiedSkills,
+      skillSelection: skillSelection || undefined,
+      skillBank,
+      skillStatuses,
       raters,
       userRatings,
       focusSkills,
       growthPlans,
       suggestedJobTitles,
+      theme,
       activeTab: currentStep === AppStep.MAIN_VIEW ? activeTab : undefined,
       activeRaterId:
         currentStep === AppStep.MAIN_VIEW ? activeRaterId : undefined,
@@ -719,12 +792,41 @@ const App: React.FC = () => {
     reader.onload = (e) => {
       try {
         const jsonString = e.target?.result as string;
-        const importedData = JSON.parse(jsonString) as AppExportData;
+        const importedData = JSON.parse(jsonString) as AppExportData | AppExportDataV2;
 
         if (!importedData || typeof importedData !== "object")
           throw new Error("Invalid file format.");
-        if (!Array.isArray(importedData.identifiedSkills))
-          throw new Error("Missing or invalid 'identifiedSkills'.");
+
+        // Check if this is the new format (has skillBank) or old format (has identifiedSkills)
+        const isNewFormat = 'skillBank' in importedData;
+        
+        if (isNewFormat) {
+          const newData = importedData as AppExportDataV2;
+          if (!newData.skillBank || !Array.isArray(newData.skillBank.allSkillsData))
+            throw new Error("Missing or invalid 'skillBank'.");
+          
+          // Set skill bank data
+          setSkillBank(newData.skillBank);
+          setSkillStatuses(newData.skillStatuses || {});
+        } else {
+          const oldData = importedData as AppExportData;
+          if (!Array.isArray(oldData.identifiedSkills))
+            throw new Error("Missing or invalid 'identifiedSkills'.");
+          
+          // Convert old format to new format
+          setSkillBank({
+            activeSkills: oldData.identifiedSkills.map(s => s.id),
+            masteredSkills: [],
+            allSkillsData: oldData.identifiedSkills
+          });
+          
+          // Initialize all skills as active
+          const newStatuses: Record<string, SkillStatus> = {};
+          oldData.identifiedSkills.forEach(skill => {
+            newStatuses[skill.id] = SkillStatus.ACTIVE;
+          });
+          setSkillStatuses(newStatuses);
+        }
 
         let importedRaters = importedData.raters;
         if (
@@ -750,14 +852,14 @@ const App: React.FC = () => {
         }
 
         setUserInput(importedData.userInput || null);
-        setIdentifiedSkills(importedData.identifiedSkills || []);
-        setSkillIdentificationAttributions([]);
+        setSkillSelection(importedData.skillSelection || null);
+        // setSkillIdentificationAttributions([]);
         setRaters(importedRaters);
         setUserRatings(importedData.userRatings || {});
         setFocusSkills(importedData.focusSkills || []);
         setGrowthPlans(importedData.growthPlans || []);
         setSuggestedJobTitles(importedData.suggestedJobTitles || []);
-        setJobSuggestionAttributions([]);
+        // setJobSuggestionAttributions([]);
         rubricCardRefs.current = {};
 
         let raterIdToRestore = SELF_ASSESSMENT_RATER_ID;
@@ -790,8 +892,13 @@ const App: React.FC = () => {
 
         setErrorMessage(null);
 
+        // Check if we have skills to display (from either format)
+        const hasSkills = isNewFormat 
+          ? (importedData as AppExportDataV2).skillBank.allSkillsData.length > 0
+          : (importedData as AppExportData).identifiedSkills.length > 0;
+
         // Move directly to the main view if there's data to display, regardless of API key status
-        if (importedData.identifiedSkills.length > 0) {
+        if (hasSkills) {
           setCurrentStep(AppStep.MAIN_VIEW);
           setActiveTab(importedData.activeTab || "radar");
           
@@ -844,8 +951,6 @@ const App: React.FC = () => {
   };
 
   const triggerImport = () => fileInputRef.current?.click();
-  // Keep this function for future use
-  const handlePrintForFeedback = () => window.print();
 
   const handleRadarSkillClick = useCallback(
     (skillId: string) => {
@@ -926,6 +1031,13 @@ const App: React.FC = () => {
             isProcessingSkills={isProcessingSkills}
             loadingMessage={loadingMessage}
             rubricCardRefs={rubricCardRefs}
+            skillStatuses={skillStatuses}
+            onMarkSkillAsMastered={handleMarkSkillAsMastered}
+            onToggleMasteredSkill={handleToggleMasteredSkill}
+            onSwapSkill={handleSwapSkill}
+            checkSkillMastery={checkSkillMastery}
+            getAvailableSkillsForSwap={getAvailableSkillsForSwap}
+            allSkills={skillBank.allSkillsData}
           />
         );
       case "growth":
@@ -972,7 +1084,7 @@ const App: React.FC = () => {
     }
 
     const isProcessingSkillsForUserInput =
-      isLoading && staticLoadingPrefix.startsWith("Identifying skills:");
+      isLoading && (staticLoadingPrefix.startsWith("Generating skill candidates:") || staticLoadingPrefix.startsWith("Processing selected skills:"));
     const isInitializingAPI =
       isLoading && loadingMessage.includes("Initializing API");
 
@@ -1003,6 +1115,20 @@ const App: React.FC = () => {
           onSubmit={handleUserInputSubmit}
           loading={isProcessingSkillsForUserInput}
           initialData={userInput}
+        />
+      );
+    }
+
+    if (currentStep === AppStep.SKILL_SELECTION) {
+      if (!skillSelection) {
+        return <LoadingIndicator message="Preparing skill selection..." />;
+      }
+      return (
+        <SkillSelectionInterface
+          skillSelection={skillSelection}
+          onSelectionChange={handleSkillSelectionChange}
+          onComplete={handleSkillSelectionComplete}
+          loading={isLoading}
         />
       );
     }
@@ -1062,6 +1188,125 @@ const App: React.FC = () => {
     return <ApiKeyInput onApiKeySubmit={handleApiKeySubmit} loading={false} error={apiKeyError} />;
   };
 
+  // Skill Mastery and Swapping Functions
+  const checkSkillMastery = useCallback((skillId: string): SkillMasteryCheck => {
+    const skillRatings = userRatings[skillId] || [];
+    const selfRating = skillRatings.find(r => r.raterId === SELF_ASSESSMENT_RATER_ID);
+    const otherRatings = skillRatings.filter(r => r.raterId !== SELF_ASSESSMENT_RATER_ID);
+    
+    // Count ratings at Advanced (3) or Expert (4) level
+    const highRatings = skillRatings.filter(r => 
+      r.rating === RubricLevel.ADVANCED || r.rating === RubricLevel.EXPERT
+    );
+    
+    // Criteria: Self + at least 3 others all at Advanced/Expert level
+    const hasSelfHighRating = selfRating && (
+      selfRating.rating === RubricLevel.ADVANCED || 
+      selfRating.rating === RubricLevel.EXPERT
+    );
+    const hasEnoughOtherHighRatings = otherRatings.filter(r => 
+      r.rating === RubricLevel.ADVANCED || r.rating === RubricLevel.EXPERT
+    ).length >= 3;
+    
+    const canBeMastered = Boolean(hasSelfHighRating && hasEnoughOtherHighRatings);
+    
+    return {
+      skillId,
+      canBeMastered,
+      ratingsSummary: {
+        selfRating: selfRating?.rating,
+        otherRatings: otherRatings.map(r => ({
+          raterId: r.raterId,
+          raterName: raters.find(rater => rater.id === r.raterId)?.name || r.raterId,
+          rating: r.rating
+        })),
+        totalHighRatings: highRatings.length
+      }
+    };
+  }, [userRatings, raters]);
+
+  const getAvailableSkillsForSwap = useCallback((): IdentifiedSkillData[] => {
+    // Return skills that are not currently active (mastered or in the bank but not displayed)
+    const activeSkillIds = new Set(skillBank.activeSkills);
+    return skillBank.allSkillsData.filter(skill => !activeSkillIds.has(skill.id));
+  }, [skillBank]);
+
+  const handleMarkSkillAsMastered = useCallback((skillId: string) => {
+    const masteryCheck = checkSkillMastery(skillId);
+    if (!masteryCheck.canBeMastered) {
+      setErrorMessage("This skill doesn't meet the mastery criteria (self + 3 others at Advanced/Expert level)");
+      return;
+    }
+
+    setSkillBank(prev => ({
+      ...prev,
+      activeSkills: prev.activeSkills.filter(id => id !== skillId),
+      masteredSkills: [...prev.masteredSkills, skillId]
+    }));
+    
+    setSkillStatuses(prev => ({
+      ...prev,
+      [skillId]: SkillStatus.MASTERED
+    }));
+
+    // Remove from focus skills if present
+    setFocusSkills(prev => prev.filter(id => id !== skillId));
+    
+    setErrorMessage(null);
+  }, [checkSkillMastery]);
+
+  const handleSwapSkill = useCallback((removeSkillId: string, addSkillId: string) => {
+    // Check if removal is allowed (either mastered or forced)
+    const masteryCheck = checkSkillMastery(removeSkillId);
+    if (!masteryCheck.canBeMastered) {
+      setErrorMessage("Cannot remove this skill - it doesn't meet mastery criteria");
+      return;
+    }
+
+    setSkillBank(prev => ({
+      ...prev,
+      activeSkills: prev.activeSkills.map(id => id === removeSkillId ? addSkillId : id),
+      masteredSkills: [...prev.masteredSkills, removeSkillId]
+    }));
+
+    setSkillStatuses(prev => ({
+      ...prev,
+      [removeSkillId]: SkillStatus.MASTERED,
+      [addSkillId]: SkillStatus.ACTIVE
+    }));
+
+    // Update focus skills
+    setFocusSkills(prev => prev.map(id => id === removeSkillId ? addSkillId : id));
+    
+    setErrorMessage(null);
+  }, [checkSkillMastery]);
+
+  const handleToggleMasteredSkill = useCallback((skillId: string) => {
+    const isCurrentlyMastered = skillStatuses[skillId] === SkillStatus.MASTERED;
+    
+    if (isCurrentlyMastered) {
+      // Bring back to active (if there's room)
+      if (skillBank.activeSkills.length >= 12) {
+        setErrorMessage("Cannot activate more than 12 skills. Remove one first.");
+        return;
+      }
+      
+      setSkillBank(prev => ({
+        ...prev,
+        activeSkills: [...prev.activeSkills, skillId],
+        masteredSkills: prev.masteredSkills.filter(id => id !== skillId)
+      }));
+      
+      setSkillStatuses(prev => ({
+        ...prev,
+        [skillId]: SkillStatus.ACTIVE
+      }));
+    } else {
+      // Mark as mastered
+      handleMarkSkillAsMastered(skillId);
+    }
+  }, [skillBank.activeSkills.length, skillStatuses, handleMarkSkillAsMastered]);
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <header className="hide-print mb-6 relative print-hide">
@@ -1114,9 +1359,7 @@ const App: React.FC = () => {
       </header>
 
       <div
-        className={`${
-          currentStep === AppStep.MAIN_VIEW ? "max-w-7xl" : "max-w-xl"
-        } mx-auto`}
+        className={`max-w-7xl mx-auto`}
       >
         {errorMessage && (
           <div

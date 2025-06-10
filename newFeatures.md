@@ -266,3 +266,42 @@ The selected colleagues receive an in-app notification and/or email with a direc
 The form contains fields for "Strengths," "Areas for Growth," and "Specific Examples."
 
 Once submitted, the feedback appears on the requester's (private) "Personal Retro" board.
+
+## Skill Mastery & Swapping System (Version 1.13.0)
+
+### New Features Added:
+
+#### 1. Skill Mastery Recognition
+- **Mastery Criteria**: Skills can be marked as "mastered" when they receive Advanced or Expert ratings from yourself + at least 3 other raters
+- **Visual Indicators**: Mastered skills show green checkmark badges throughout the interface
+- **Ready for Mastery**: Skills meeting the criteria display a "Ready for Mastery" indicator
+
+#### 2. Skill Banking System
+- **Active Skills**: Up to 12 skills displayed on your radar (6 Universal Growth Enablers + 6 personal skills)
+- **Mastered Skills**: Skills marked as mastered are preserved but removed from active radar view
+- **Skill Data Preservation**: All rating data is maintained even when skills are mastered or swapped
+
+#### 3. Skill Swapping Interface
+- **Smart Swapping**: Replace mastered skills with new skills while maintaining your 12-skill focus
+- **Skill Management**: Located in the Skills Radar tab, showing active skills with mastery status
+- **Reactivation**: Bring mastered skills back to active status anytime (if under 12 total)
+
+#### 4. Enhanced Data Export/Import
+- **Backward Compatibility**: Supports both old and new data formats
+- **SkillBank Structure**: New export format includes skill banking data and mastery status
+- **Seamless Migration**: Old exports automatically convert to new format on import
+
+#### 5. UI Enhancements
+- **Skill Mastery Manager**: Dedicated interface for managing skill mastery and swapping
+- **Rubric Card Indicators**: Individual skill cards show mastery status and readiness
+- **Progress Tracking**: Clear visual progression from developing to mastered skills
+
+### How to Use:
+
+1. **Rate Your Skills**: Get yourself and at least 3 colleagues to rate your skills
+2. **Identify Mastery**: Skills with Advanced/Expert ratings from self + 3 others become eligible for mastery
+3. **Mark as Mastered**: Use the "Mark as Mastered" button to recognize skill achievement
+4. **Swap Skills**: Replace mastered skills with new growth areas to maintain focus
+5. **Track Progress**: Monitor your skill development journey through the mastery indicators
+
+This system enables continuous growth while maintaining focus on your most important development areas.
