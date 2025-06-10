@@ -46,6 +46,47 @@ const GrowthPlanDisplay: React.FC<GrowthPlanDisplayProps> = ({
             Growth Plan: {plan.skillName}
           </h3>
 
+          {/* Growth Dimension Analysis Section */}
+          <div className="mb-6">
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+              🎯 Strategic Growth Impact
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                <h5 className="font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center">
+                  <span className="mr-2">🔄</span>Breadth
+                </h5>
+                <p className="text-sm text-blue-700 dark:text-blue-200">
+                  {plan.dimensionAnalysis.breadth}
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                <h5 className="font-semibold text-green-800 dark:text-green-300 mb-2 flex items-center">
+                  <span className="mr-2">⚡</span>Depth
+                </h5>
+                <p className="text-sm text-green-700 dark:text-green-200">
+                  {plan.dimensionAnalysis.depth}
+                </p>
+              </div>
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                <h5 className="font-semibold text-purple-800 dark:text-purple-300 mb-2 flex items-center">
+                  <span className="mr-2">🚀</span>Reach
+                </h5>
+                <p className="text-sm text-purple-700 dark:text-purple-200">
+                  {plan.dimensionAnalysis.reach}
+                </p>
+              </div>
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                <h5 className="font-semibold text-orange-800 dark:text-orange-300 mb-2 flex items-center">
+                  <span className="mr-2">🎖️</span>Range
+                </h5>
+                <p className="text-sm text-orange-700 dark:text-orange-200">
+                  {plan.dimensionAnalysis.range}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="mb-6">
             <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
               Understanding Your Current Level

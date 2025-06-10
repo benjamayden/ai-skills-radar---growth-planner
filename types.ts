@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
 export interface UserInputData {
@@ -6,6 +5,8 @@ export interface UserInputData {
   resumeInfo: string;
   aspirationsThrive: string;
   aspirationsGoals: string;
+  teamStrategy: string; // Now required
+  companyStrategy: string; // Now required
 }
 
 export enum SkillCategory {
@@ -70,11 +71,19 @@ export interface LearningResource {
   type: string;
 }
 
+export interface GrowthDimensionAnalysis {
+  breadth: string; // How this skill enhances versatility and cross-functional contribution
+  depth: string;   // How this skill deepens specialization and expertise
+  reach: string;   // How this skill expands involvement, responsibility, and ability to shape work
+  range: string;   // How this skill enables tackling more complex, high-impact, or strategic work
+}
+
 export interface GrowthPlan {
   skillName: string;
   currentProficiencyContext: string; // Details current level and market reaction
   targetProficiencyContext: string; // Details 5-year plan alignment and market expectations at target level
   learningResources: LearningResource[];
+  dimensionAnalysis: GrowthDimensionAnalysis; // NEW: Strategic growth dimension analysis
   searchAttributions?: GroundingChunk[];
 }
 
@@ -164,17 +173,12 @@ export interface AppExportData {
   showAverageOnRadar?: boolean; // Save show average preference
   appVersion?: string;
   // We don't export attributions as they are tied to a specific API call instance
+  // Added fields for team/company strategy for completeness (optional, as part of userInput)
 }
 
-export enum RadarViewMode {
-  INDIVIDUAL = "Individual", // Represents viewing a single rater, though not explicitly used as a state.
-  COMPARISON = "Comparison"  // Represents viewing multiple raters.
-}
-
-// Data structure for passing processed rater data to the SkillsRadarChart
 export interface RadarDisplaySeries {
-  key: string; // Unique key for Recharts (e.g., "rater_self", "rater_peer123", "average")
-  name: string; // Display name for legend (e.g., "Self-Assessed", "Peer (John)", "Average")
-  color: string; // Hex color code
-  isAverage?: boolean; // Flag for styling average line differently if needed
+  key: string;
+  name: string;
+  color: string;
+  isAverage?: boolean;
 }

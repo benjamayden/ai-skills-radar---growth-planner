@@ -12,12 +12,12 @@ import {
   UserRatingsData,
   AppExportData,
   RUBRIC_LEVEL_MAP,
-  RadarDisplaySeries,
   MAX_RUBRIC_LEVEL_VALUE,
   SELF_ASSESSMENT_RATER_ID,
   GroundingChunk,
   SuggestedJobsResponse,
   ProcessedSkillsResponse,
+  RadarDisplaySeries, // Importing the shared type
 } from "./types";
 import {
   APP_TITLE,
@@ -32,13 +32,14 @@ import { geminiService } from "./services/geminiService";
 import ApiKeyInput from "./components/ApiKeyInput";
 import LoadingIndicator from "./components/LoadingIndicator";
 import ThemeToggle from "./components/ThemeToggle";
+import RateLimitInfo from "./components/RateLimitInfo";
 import SkillsRadarAndRubrics from "./components/SkillsRadarAndRubrics";
 import TabDetails from "./pages/TabDetails";
 import TabRadar from "./pages/TabRadar";
 import TabGrowth from "./pages/TabGrowth";
 import TabRadarAndRubrics from "./pages/TabRadarAndRubrics";
 
-const APP_VERSION = "1.11.0"; // Version for Rubric Cleanup & Loading Msg Cycle
+const APP_VERSION = "1.13.0"; // Version for Growth Dimension Analysis Feature
 
 type Theme = "light" | "dark";
 
@@ -218,14 +219,30 @@ const App: React.FC = () => {
         if (userInput && activeTab) setActiveTab(activeTab);
         else setActiveTab("details");
         return true;
-      } catch (error) {
+      } catch (error: any) {
         console.error(
           `API Key Initialization Error (source: ${source}):`,
           error
         );
-        setApiKeyError(
-          `Failed to initialize API Key from ${source}. Check key/network.`
-        );
+        
+        // Check for rate limit error (429)
+        if (error.message && error.message.includes('429')) {
+          const errorMessage = "🚨 API Rate Limit Reached\n\n" + 
+            "You've reached the Gemini API free tier limit (500 requests per day).\n\n" + 
+            "Options:\n" +
+            "1. Wait until tomorrow when your quota resets\n" +
+            "2. Use a different API key\n" +
+            "3. Upgrade to a paid tier at Google AI Studio";
+          
+          setApiKeyError(errorMessage);
+        } else if (error.message && error.message.includes('invalid')) {
+          setApiKeyError("Invalid API key. Please check your API key and try again.");
+        } else {
+          setApiKeyError(
+            `Failed to initialize API Key from ${source}. ${error.message || 'Check key/network.'}`
+          );
+        }
+        
         setGenAI(null);
         return false;
       } finally {
@@ -773,23 +790,45 @@ const App: React.FC = () => {
 
         setErrorMessage(null);
 
-        if (!genAI) {
-          setCurrentStep(AppStep.API_KEY_INPUT);
-          setErrorMessage(
-            "Data imported. Please verify/enter your API key to enable AI features."
-          );
-        } else if (
-          importedData.userInput &&
-          importedData.identifiedSkills.length > 0
-        ) {
+        // Move directly to the main view if there's data to display, regardless of API key status
+        if (importedData.identifiedSkills.length > 0) {
           setCurrentStep(AppStep.MAIN_VIEW);
           setActiveTab(importedData.activeTab || "radar");
+          
+          // Show a warning if no API key, but don't block viewing the data
+          if (!genAI) {
+            setErrorMessage(
+              "Data imported. Note: You can view the imported data, but you'll need an API key to generate new content."
+            );
+          }
         } else if (importedData.userInput) {
           setCurrentStep(AppStep.MAIN_VIEW);
           setActiveTab("details");
+          
+          if (!genAI) {
+            setErrorMessage(
+              "Data imported. Note: You can view the imported data, but you'll need an API key to generate new content."
+            );
+          }
         } else {
-          setCurrentStep(AppStep.USER_DATA_INPUT);
+          // If there's truly no data to display, show the appropriate screen based on API key status
+          if (!genAI) {
+            setCurrentStep(AppStep.API_KEY_INPUT);
+            setErrorMessage("Data imported, but no skills were found. Please add an API key to generate content.");
+          } else {
+            setCurrentStep(AppStep.USER_DATA_INPUT);
+          }
         }
+
+        // Patch for legacy imports: ensure new fields exist
+        setUserInput({
+          hardSkills: importedData.userInput?.hardSkills || '',
+          resumeInfo: importedData.userInput?.resumeInfo || '',
+          aspirationsThrive: importedData.userInput?.aspirationsThrive || '',
+          aspirationsGoals: importedData.userInput?.aspirationsGoals || '',
+          teamStrategy: importedData.userInput?.teamStrategy || '',
+          companyStrategy: importedData.userInput?.companyStrategy || '',
+        });
       } catch (err) {
         console.error("Error importing data:", err);
         setErrorMessage(
@@ -805,6 +844,7 @@ const App: React.FC = () => {
   };
 
   const triggerImport = () => fileInputRef.current?.click();
+  // Keep this function for future use
   const handlePrintForFeedback = () => window.print();
 
   const handleRadarSkillClick = useCallback(
@@ -908,6 +948,7 @@ const App: React.FC = () => {
             skills={identifiedSkills}
             radarData={seriesInfoForChart}
             chartDataForRecharts={chartDataForRecharts}
+            theme={theme}
           />
         );
       }
@@ -923,12 +964,9 @@ const App: React.FC = () => {
           <ApiKeyInput
             onApiKeySubmit={handleApiKeySubmit}
             loading={isLoading && loadingMessage.includes("Verifying API Key")}
+            error={apiKeyError}
+            onTriggerImport={triggerImport}
           />
-          {apiKeyError && (
-            <p className="mt-4 text-center text-red-600 dark:text-red-400">
-              {apiKeyError}
-            </p>
-          )}
         </>
       );
     }
@@ -971,10 +1009,10 @@ const App: React.FC = () => {
 
     if (currentStep === AppStep.MAIN_VIEW) {
       return (
-        <div className="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-0 md:p-2">
+        <div className="print-main-container bg-white dark:bg-gray-800 shadow-xl rounded-lg p-0 md:p-2">
           <div className="border-b border-gray-200 dark:border-gray-700 mb-6 print-hide">
             <nav
-              className="-mb-px flex space-x-0 md:space-x-4"
+              className="hide-print -mb-px flex space-x-0 md:space-x-4"
               aria-label="Tabs"
             >
               <TabButton
@@ -1021,20 +1059,23 @@ const App: React.FC = () => {
         />
       );
 
-    return <ApiKeyInput onApiKeySubmit={handleApiKeySubmit} loading={false} />;
+    return <ApiKeyInput onApiKeySubmit={handleApiKeySubmit} loading={false} error={apiKeyError} />;
   };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-      <header className="mb-6 relative print-hide">
+      <header className="hide-print mb-6 relative print-hide">
         <div className="flex gap-4 items-center justify-between max-w-7xl mx-auto">
-          <div className="flex gap-4 items-end">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight">
-              {APP_TITLE}
-            </h1>
-            <p className=" text-base md:text-lg text-gray-600 dark:text-gray-400">
-              Align yourself with market demands.
-            </p>
+          <div className="flex flex-col">
+            <div className="flex gap-4 items-end">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight">
+                {APP_TITLE}
+              </h1>
+              <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
+                Align yourself with market demands.
+              </p>
+            </div>
+            {currentStep === AppStep.MAIN_VIEW && <RateLimitInfo theme={theme} className="mt-2" />}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4 print-hide">
             <button

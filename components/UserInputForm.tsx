@@ -13,17 +13,23 @@ const UserInputForm: React.FC<UserInputFormProps> = ({ onSubmit, loading, initia
     resumeInfo: '',
     aspirationsThrive: '',
     aspirationsGoals: '',
+    teamStrategy: '',
+    companyStrategy: '',
   });
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        ...initialData
+      });
     } else {
-       setFormData({
+      setFormData({
         hardSkills: '',
         resumeInfo: '',
         aspirationsThrive: '',
         aspirationsGoals: '',
+        teamStrategy: '',
+        companyStrategy: '',
       });
     }
   }, [initialData]);
@@ -35,7 +41,7 @@ const UserInputForm: React.FC<UserInputFormProps> = ({ onSubmit, loading, initia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit(formData); // Pass all fields, now all required
   };
 
   // Added text-gray-900 and placeholder-gray-500 for light mode. Added dark:disabled:text-gray-400
@@ -115,6 +121,39 @@ const UserInputForm: React.FC<UserInputFormProps> = ({ onSubmit, loading, initia
           disabled={loading}
         />
          <p className={helperTextClass}>Where do you see your career heading? This influences skill relevance.</p>
+      </div>
+
+      <div>
+        <label htmlFor="teamStrategy" className={formLabelClass}>
+          Team Strategy
+        </label>
+        <textarea
+          id="teamStrategy"
+          name="teamStrategy"
+          rows={2}
+          value={formData.teamStrategy || ''}
+          onChange={handleChange}
+          className={formFieldClass}
+          placeholder="Describe your team's current strategy, priorities, or focus areas. (Optional)"
+          disabled={loading}
+        />
+        <p className={helperTextClass}>Share your team's main objectives or strategic direction if relevant.</p>
+      </div>
+      <div>
+        <label htmlFor="companyStrategy" className={formLabelClass}>
+          Company Strategy
+        </label>
+        <textarea
+          id="companyStrategy"
+          name="companyStrategy"
+          rows={2}
+          value={formData.companyStrategy || ''}
+          onChange={handleChange}
+          className={formFieldClass}
+          placeholder="Describe your company's current strategy, mission, or vision. (Optional)"
+          disabled={loading}
+        />
+        <p className={helperTextClass}>Share your company's strategic direction, mission, or vision if relevant.</p>
       </div>
 
       <button

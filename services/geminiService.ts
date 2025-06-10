@@ -1,9 +1,9 @@
-
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import {
   UserInputData,
   ProcessedSkillsResponse,
   GrowthPlan,
+  GrowthDimensionAnalysis,
   RubricLevel,
   IdentifiedSkillData,
   SkillCategory,
@@ -14,6 +14,7 @@ import {
   Rubric,
 } from '../types';
 import { DEFAULT_SAFETY_SETTINGS } from '../constants';
+import { incrementRateLimitCounter } from './rateLimit';
 
 function parseJsonFromText(text: string): any {
   let jsonStr = text.trim();
@@ -63,6 +64,8 @@ User Context:
 - User's Resume Information / Key Experience (provides context on the types of roles/domains they've been in or are interested in): ${userInput.resumeInfo}
 - What Makes User Thrive (indicates preferred work styles or areas of passion, helping to theme the market search): ${userInput.aspirationsThrive}
 - User's Career Goals (Next 5 Years) (helps identify relevant career trajectories and associated market skills): ${userInput.aspirationsGoals}
+- Team Strategy (context about the user's team priorities or focus): ${userInput.teamStrategy}
+- Company Strategy (context about the company's mission, vision, or strategy): ${userInput.companyStrategy}
 
 Based on your web search and analysis of the CURRENT JOB MARKET for roles like Product Manager, UX/UI Designer, Software Developer, Data Analyst, Program Manager, Business Analyst (filtered by the user's context):
 
@@ -135,6 +138,9 @@ Do not include any text or comments outside the main JSON object. The entire res
         temperature: 0.4, 
       },
     });
+    
+    // Increment rate limit counter after successful API call
+    incrementRateLimitCounter(1);
     
     const parsedData = parseJsonFromText(response.text ?? "");
 
@@ -218,6 +224,14 @@ Based on their overall profile, they have also been suggested these potential jo
 Task:
 Please provide a structured growth plan. Use Google Search to gather current information for all sections, ensuring it's up-to-date and relevant. Use the following section headers EXACTLY as written, followed by your content for that section:
 
+### GROWTH DIMENSION ANALYSIS ###
+(Analyze how developing "${skillName}" contributes to the four key growth dimensions:
+    * **Breadth**: How this skill enhances versatility and cross-functional contribution. Explain how mastering this skill allows for greater flexibility across different areas of work.
+    * **Depth**: How this skill deepens specialization and expertise. Describe how advancing in this skill builds deeper knowledge and recognition as a subject matter expert.
+    * **Reach**: How this skill expands involvement, responsibility, and ability to shape work. Detail how this skill enables taking on larger roles, leading initiatives, and influencing outcomes.
+    * **Range**: How this skill enables tackling more complex, high-impact, or strategic work. Explain how proficiency in this skill opens doors to higher-level challenges and business-critical projects.
+Keep this analysis strategic and forward-looking, connecting skill development to career progression.)
+
 ### YOUR CURRENT STANDING ###
 (Analyze the user's current self-assessed competency level ("${userCompetencyLevel}") for the skill "${skillName}".
     * Describe what this level typically means in terms of responsibilities, expectations, and common tasks based on current job market information.
@@ -253,7 +267,10 @@ Structure your entire response clearly under these specific headers.
         temperature: 0.6, 
       },
     });
-
+    
+    // Increment rate limit counter after successful API call
+    incrementRateLimitCounter(1);
+    
     const textResponse = response.text;
     
     const learningResources: LearningResource[] = [];
@@ -270,6 +287,30 @@ Structure your entire response clearly under these specific headers.
 
     let currentProficiencyContext = "Detailed analysis for your current standing could not be generated.";
     let targetProficiencyContext = "Detailed analysis for developing towards your goals could not be generated.";
+
+    // Parse Growth Dimension Analysis
+    let dimensionAnalysis = {
+      breadth: "Analysis not available.",
+      depth: "Analysis not available.", 
+      reach: "Analysis not available.",
+      range: "Analysis not available."
+    };
+
+    const dimensionAnalysisMatch = (textResponse ?? "").match(/### GROWTH DIMENSION ANALYSIS ###\s*([\s\S]*?)(?=\n### YOUR CURRENT STANDING ###|$)/);
+    if (dimensionAnalysisMatch && dimensionAnalysisMatch[1]) {
+      const analysisText = stripReferences(dimensionAnalysisMatch[1].trim());
+      
+      // Extract individual dimensions
+      const breadthMatch = analysisText.match(/\*\*Breadth\*\*:?\s*(.*?)(?=\s*\*\*Depth\*\*|$)/s);
+      const depthMatch = analysisText.match(/\*\*Depth\*\*:?\s*(.*?)(?=\s*\*\*Reach\*\*|$)/s);
+      const reachMatch = analysisText.match(/\*\*Reach\*\*:?\s*(.*?)(?=\s*\*\*Range\*\*|$)/s);
+      const rangeMatch = analysisText.match(/\*\*Range\*\*:?\s*(.*?)(?=\s*$)/s);
+
+      if (breadthMatch) dimensionAnalysis.breadth = breadthMatch[1].trim();
+      if (depthMatch) dimensionAnalysis.depth = depthMatch[1].trim();
+      if (reachMatch) dimensionAnalysis.reach = reachMatch[1].trim();  
+      if (rangeMatch) dimensionAnalysis.range = rangeMatch[1].trim();
+    }
 
     const currentStandingMatch = (textResponse ?? "").match(/### YOUR CURRENT STANDING ###\s*([\s\S]*?)(?=\n### DEVELOPING TOWARDS YOUR GOALS ###|$)/);
     if (currentStandingMatch && currentStandingMatch[1]) {
@@ -288,6 +329,7 @@ Structure your entire response clearly under these specific headers.
       currentProficiencyContext,
       targetProficiencyContext,
       learningResources,
+      dimensionAnalysis,
       searchAttributions: candidate?.groundingMetadata?.groundingChunks || [],
     };
   } catch (error) {
@@ -335,6 +377,9 @@ Ensure the entire response is a valid JSON object and contains only the list of 
         temperature: 0.5, 
       },
     });
+    
+    // Increment rate limit counter after successful API call
+    incrementRateLimitCounter(1);
     
     const parsedData = parseJsonFromText(response.text ?? "");
 

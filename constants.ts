@@ -1,4 +1,3 @@
-
 import { GeminiSafetySetting } from './types';
 import { HarmCategory, HarmBlockThreshold } from "@google/genai";
 

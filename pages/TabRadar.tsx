@@ -3,7 +3,7 @@ import RaterManager from "../components/RaterManager";
 import SkillsRadarChart from "../components/SkillsRadarChart";
 import SkillRubricCard from "../components/SkillRubricCard";
 import LoadingIndicator from "../components/LoadingIndicator";
-import { Rater, RadarDisplaySeries, IdentifiedSkillData, RubricLevel } from "../types";
+import { Rater, IdentifiedSkillData, RubricLevel, RadarDisplaySeries } from "../types";
 
 interface TabRadarProps {
   raters: Rater[];
