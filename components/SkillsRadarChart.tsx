@@ -54,15 +54,8 @@ const SkillsRadarChart: React.FC<SkillsRadarChartProps> = ({ chartDataForRechart
     return <p className="text-center text-gray-500 dark:text-gray-400">No skills data available to display chart, or no raters selected for comparison.</p>;
   }
   
-  // Keep a minimal log to verify data structure when needed
-  if (chartDataForRecharts.length > 0) {
-    console.log("SkillsRadarChart: Data loaded with", chartDataForRecharts.length, "skills");
-  }
-  
   // Handle clicking on a radar segment to scroll to the corresponding rubric card
   const handleRadarClick = useCallback((data: any) => {
-    console.log("SkillsRadarChart: handleRadarClick raw data:", data);
-    
     try {
       // Extract the clicked subject and find its skillId
       let skillId: string | null = null;
@@ -85,7 +78,6 @@ const SkillsRadarChart: React.FC<SkillsRadarChartProps> = ({ chartDataForRechart
         
         // If we found a subject, look up the corresponding skill
         if (clickedSubject) {
-          console.log("Found clicked subject:", clickedSubject);
           const matchingSkill = chartDataForRecharts.find(item => 
             item.subject === clickedSubject);
           if (matchingSkill?.skillId) {
@@ -96,10 +88,7 @@ const SkillsRadarChart: React.FC<SkillsRadarChartProps> = ({ chartDataForRechart
       
       // Only proceed if we found a valid skillId
       if (skillId && onSkillLabelClick) {
-        console.log("SkillsRadarChart: Successfully extracted skillId:", skillId);
         onSkillLabelClick(skillId);
-      } else {
-        console.log("SkillsRadarChart: Could not extract skillId from click data");
       }
       
     } catch (err) {
@@ -109,8 +98,6 @@ const SkillsRadarChart: React.FC<SkillsRadarChartProps> = ({ chartDataForRechart
 
   // Specialized handler for dot clicks
   const handleDotClick = useCallback((data: any) => {
-    console.log("SkillsRadarChart: handleDotClick raw data:", data);
-    
     try {
       let skillId: string | null = null;
       let subject: string | null = null;
@@ -138,13 +125,9 @@ const SkillsRadarChart: React.FC<SkillsRadarChartProps> = ({ chartDataForRechart
         }
       }
       
-      console.log("SkillsRadarChart: Dot click - extracted skillId:", skillId, "from subject:", subject);
-      
       // Only proceed if we found a valid skillId
       if (skillId && onSkillLabelClick) {
         onSkillLabelClick(skillId);
-      } else {
-        console.log("SkillsRadarChart: Dot click - no skillId found, not taking any action");
       }
     } catch (err) {
       console.error("Error in dot click handler:", err);

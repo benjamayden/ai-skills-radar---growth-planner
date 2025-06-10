@@ -3,7 +3,6 @@ import {
   UserInputData,
   ProcessedSkillsResponse,
   GrowthPlan,
-  GrowthDimensionAnalysis,
   RubricLevel,
   IdentifiedSkillData,
   SkillCategory,
@@ -12,8 +11,10 @@ import {
   Candidate,
   SuggestedJobsResponse,
   Rubric,
+  SkillGenerationResponse,
+  SkillCandidate,
 } from '../types';
-import { DEFAULT_SAFETY_SETTINGS } from '../constants';
+import { DEFAULT_SAFETY_SETTINGS, UNIVERSAL_GROWTH_ENABLERS, SKILL_SELECTION_CONFIG } from '../constants';
 import { incrementRateLimitCounter } from './rateLimit';
 
 function parseJsonFromText(text: string): any {
@@ -193,8 +194,12 @@ Do not include any text or comments outside the main JSON object. The entire res
     }
     
     const candidate = response.candidates?.[0] as Candidate | undefined;
+    
+    // Append Universal Growth Enablers to the skills list
+    const allSkills = [...validatedSkills, ...UNIVERSAL_GROWTH_ENABLERS];
+    
     return { 
-        skills: validatedSkills,
+        skills: allSkills,
         searchAttributions: candidate?.groundingMetadata?.groundingChunks || [],
     };
 
@@ -399,8 +404,129 @@ Ensure the entire response is a valid JSON object and contains only the list of 
   }
 };
 
+const generateSkillCandidates = async (
+  genAI: GoogleGenAI,
+  userInput: UserInputData
+): Promise<SkillGenerationResponse> => {
+  const prompt = `
+You are an AI expert career analyst specializing in the product development and technology job market.
+Your task is to analyze user input and generate ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE} skill candidates with strategic ranking.
+
+Use Google Search to research current job market demands and identify relevant skills.
+
+User Context:
+- Hard Skills: ${userInput.hardSkills}
+- Resume/Experience: ${userInput.resumeInfo}
+- What Makes User Thrive: ${userInput.aspirationsThrive}
+- Career Goals (5 years): ${userInput.aspirationsGoals}
+- Team Strategy: ${userInput.teamStrategy}
+- Company Strategy: ${userInput.companyStrategy}
+
+Based on your web search, generate ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE} skill candidates. For each skill, provide:
+
+1. Basic info: id, name, description, category (Hard Skill/Soft Skill)
+2. Strategic analysis:
+   - goalAlignment: How this skill supports their career goals
+   - strategyAlignment: How it aligns with team/company strategy
+   - marketImportance: Why it's valuable in current market
+   - relevanceScore: 1-10 overall relevance score
+3. Complete rubric with foundational, intermediate, advanced, expert levels
+
+Also provide:
+- summary: Brief overview of the skill landscape
+- recommendedFocus: Array of 6 skill IDs you most recommend
+- totalGenerated: Total number of skills generated
+
+Return as JSON with this structure:
+{
+  "skillCandidates": [
+    {
+      "id": "skill_id",
+      "name": "Skill Name",
+      "description": "Brief description",
+      "category": "Hard Skill" or "Soft Skill",
+      "relevanceScore": 8,
+      "goalAlignment": "How it supports goals...",
+      "strategyAlignment": "How it aligns with strategy...",
+      "marketImportance": "Why it's valuable...",
+      "rubric": {
+        "foundational": "...",
+        "intermediate": "...",
+        "advanced": "...",
+        "expert": "..."
+      }
+    }
+  ],
+  "summary": "Overview of skills landscape...",
+  "recommendedFocus": ["skill_id_1", "skill_id_2", ...],
+  "totalGenerated": ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE}
+}
+
+Focus on skills relevant to product development, UX/UI design, software development, data analysis, program management, and business analysis.
+`;
+
+  try {
+    const response: GenerateContentResponse = await genAI.models.generateContent({
+      model: 'gemini-2.5-flash-preview-04-17',
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        tools: [{ googleSearch: {} }],
+        safetySettings: DEFAULT_SAFETY_SETTINGS,
+        temperature: 0.4,
+      },
+    });
+
+    incrementRateLimitCounter(1);
+    const parsedData = parseJsonFromText(response.text ?? "");
+
+    if (!parsedData.skillCandidates || !Array.isArray(parsedData.skillCandidates)) {
+      throw new Error("AI response missing skillCandidates array");
+    }
+
+    // Process and rank candidates
+    const processedCandidates: SkillCandidate[] = parsedData.skillCandidates.map((candidate: any, index: number) => {
+      // Calculate ranking (for now, use relevance score and index)
+      const goalRelevanceRank = index + 1;
+      const strategyRelevanceRank = index + 1;
+      const marketImportanceRank = index + 1;
+      const overallRank = Math.round(
+        goalRelevanceRank * SKILL_SELECTION_CONFIG.RANKING_WEIGHTS.GOAL_RELEVANCE +
+        strategyRelevanceRank * SKILL_SELECTION_CONFIG.RANKING_WEIGHTS.STRATEGY_ALIGNMENT +
+        marketImportanceRank * SKILL_SELECTION_CONFIG.RANKING_WEIGHTS.MARKET_IMPORTANCE
+      );
+
+      return {
+        ...candidate,
+        goalRelevanceRank,
+        strategyRelevanceRank,
+        marketImportanceRank,
+        overallRank,
+        rubric: {
+          skillId: candidate.id,
+          foundational: stripReferences(candidate.rubric.foundational),
+          intermediate: stripReferences(candidate.rubric.intermediate),
+          advanced: stripReferences(candidate.rubric.advanced),
+          expert: stripReferences(candidate.rubric.expert),
+        }
+      };
+    });
+
+    return {
+      skillCandidates: processedCandidates,
+      summary: parsedData.summary || "Skills analysis completed",
+      recommendedFocus: parsedData.recommendedFocus || processedCandidates.slice(0, 6).map(c => c.id),
+      totalGenerated: processedCandidates.length
+    };
+
+  } catch (error) {
+    console.error("Error generating skill candidates:", error);
+    throw error;
+  }
+};
+
 export const geminiService: GenAIService = {
   identifySkillsAndGenerateRubrics,
   generateGrowthPlan,
   suggestJobTitles,
+  generateSkillCandidates,
 };

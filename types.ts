@@ -20,6 +20,12 @@ export interface Skill {
   category: SkillCategory;
 }
 
+export interface IdentifiedSkillData extends Skill {
+  description: any;
+  rubric: Rubric;
+  isUniversalEnabler?: boolean; // Flag to identify Universal Growth Enablers
+}
+
 export enum RubricLevel {
   FOUNDATIONAL = "Foundational",
   INTERMEDIATE = "Intermediate",
@@ -54,10 +60,6 @@ export interface Rubric {
   intermediate: string;
   advanced: string;
   expert: string;
-}
-
-export interface IdentifiedSkillData extends Skill {
-  rubric: Rubric;
 }
 
 export interface ProcessedSkillsResponse {
@@ -124,14 +126,16 @@ export interface GenAIService {
     suggestedJobTitles: string[] // Added suggestedJobTitles
   ) => Promise<GrowthPlan>;
   suggestJobTitles: (genAI: GoogleGenAI, skillsWithRatings: { skillName: string; rating: RubricLevel }[]) => Promise<SuggestedJobsResponse>;
+  generateSkillCandidates: (genAI: GoogleGenAI, userInput: UserInputData) => Promise<SkillGenerationResponse>; // NEW
 }
 
 // Updated AppStep
 export enum AppStep {
-  API_KEY_INPUT,
-  USER_DATA_INPUT, // For initial data entry
-  PROCESSING,      // Generic processing state
-  MAIN_VIEW,       // Main view with tabs
+  API_KEY_INPUT = "api-key-input",
+  USER_DATA_INPUT = "user-data-input", 
+  SKILL_SELECTION = "skill-selection", // NEW
+  PROCESSING = "processing",
+  MAIN_VIEW = "main-view"
 }
 
 // New type for active tab
@@ -160,22 +164,63 @@ export type UserRatingsData = Record<string, SkillRatingEntry[]>;
 
 // Type for Application's full data state for export/import
 export interface AppExportData {
+  version: string;
+  exportDate: string;
   userInput: UserInputData | null;
+  skillSelection?: SkillSelectionState;
   identifiedSkills: IdentifiedSkillData[];
-  raters: Rater[];
   userRatings: UserRatingsData;
-  focusSkills: string[]; // skill IDs
+  focusSkills: string[];
   growthPlans: GrowthPlan[];
-  suggestedJobTitles: string[];
-  activeTab?: ActiveTabType; // Save active tab
-  activeRaterId?: string; // Save active rater ID
-  comparisonRaterIds?: string[]; // Save comparison rater IDs
-  showAverageOnRadar?: boolean; // Save show average preference
-  appVersion?: string;
-  // We don't export attributions as they are tied to a specific API call instance
-  // Added fields for team/company strategy for completeness (optional, as part of userInput)
+  suggestedJobTitles: string[]; // Fix: Change from suggestedJobs to suggestedJobTitles
+  raters: Rater[];
+  theme: "light" | "dark";
+  activeTab?: ActiveTabType;
+  activeRaterId?: string;
+  comparisonRaterIds?: string[];
+  showAverageOnRadar?: boolean;
 }
 
+// NEW: Enhanced skill candidate for selection process
+export interface SkillCandidate {
+  id: string;
+  name: string;
+  description: string;
+  category: SkillCategory;
+  
+  // Selection metadata
+  relevanceScore: number; // 1-10 overall relevance
+  goalAlignment: string; // How it supports user's goals
+  strategyAlignment: string; // How it supports company/team strategy
+  marketImportance: string; // Why it's valuable in current market
+  
+  // Ranking factors (lower number = higher rank)
+  goalRelevanceRank: number;
+  strategyRelevanceRank: number;
+  marketImportanceRank: number;
+  overallRank: number;
+  
+  rubric: Rubric;
+  isUniversalEnabler?: boolean;
+}
+
+// NEW: Skill selection state
+export interface SkillSelectionState {
+  candidates: SkillCandidate[];
+  selectedPersonalSkills: string[]; // IDs of selected personal skills
+  universalEnablers: SkillCandidate[]; // Always included (6 skills)
+  maxPersonalSkills: number; // Default: 6
+}
+
+// NEW: Response from AI skill generation
+export interface SkillGenerationResponse {
+  skillCandidates: SkillCandidate[];
+  summary: string;
+  recommendedFocus: string[]; // Top 6 AI-recommended skill IDs
+  totalGenerated: number;
+}
+
+// NEW: Add RadarDisplaySeries interface
 export interface RadarDisplaySeries {
   key: string;
   name: string;

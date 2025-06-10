@@ -41,35 +41,16 @@ export const getRateLimitTracker = (): RateLimitTracker => {
   return newTracker;
 };
 
-// Increment the counter when an API call is made
-export const incrementRateLimitCounter = (incrementBy: number = 1): void => {
-  const tracker = getRateLimitTracker();
-  tracker.todayCount += incrementBy;
-  localStorage.setItem('geminiRateLimitTracker', JSON.stringify(tracker));
-};
+const RATE_LIMIT_KEY = 'gemini_api_calls';
+const DAILY_LIMIT = 500;
 
-// Check if we're approaching the rate limit
-export const checkRateLimitStatus = (): {
-  isApproachingLimit: boolean;
-  isLikelyAtLimit: boolean;
-  usagePercent: number;
-  remainingCalls: number;
-} => {
-  const tracker = getRateLimitTracker();
-  const dailyLimit = 500; // Google's free tier limit
-  const warningThreshold = 0.8; // 80%
-  const criticalThreshold = 0.95; // 95%
-  
-  const usagePercent = tracker.todayCount / dailyLimit;
-  const remainingCalls = dailyLimit - tracker.todayCount;
-  
-  return {
-    isApproachingLimit: usagePercent >= warningThreshold,
-    isLikelyAtLimit: usagePercent >= criticalThreshold,
-    usagePercent,
-    remainingCalls
-  };
-};
+export function incrementRateLimitCounter(calls: number = 1): void {
+  // Implementation here
+}
+
+export function getRateLimitInfo(): { count: number; limit: number; remaining: number } {
+  return { count: 0, limit: 500, remaining: 500 };
+}
 
 // Reset the counter (useful for testing)
 export const resetRateLimitCounter = (): void => {

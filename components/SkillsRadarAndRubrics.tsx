@@ -50,9 +50,16 @@ const SkillsRadarAndRubrics: React.FC<SkillsRadarAndRubricsProps> = ({
               key={skill.id}
               className="print-skill-wrapper block border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800 shadow print:shadow-none print:border-gray-400"
             >
-              <h4 className="text-lg font-bold mb-4 text-primary-700 dark:text-primary-400 print:text-black">
-                {skill.name}
-              </h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-bold text-primary-700 dark:text-primary-400 print:text-black">
+                  {skill.name}
+                </h4>
+                {skill.isUniversalEnabler && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 print:bg-gray-200 print:text-gray-800">
+                    🎯 Universal Enabler
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {rubricLevels.map((level, idx) => (
                   <div
@@ -60,7 +67,7 @@ const SkillsRadarAndRubrics: React.FC<SkillsRadarAndRubricsProps> = ({
                     className="print-skill-rubric flex items-start gap-4 mb-2"
                   >
                     <span
-                      className={`w-[24px] h-[24px] text-gray-400 mt-1`}
+                      className="w-[24px] h-[24px] text-gray-400 mt-1"
                     >
                       <svg
                         width="24"
@@ -77,7 +84,7 @@ const SkillsRadarAndRubrics: React.FC<SkillsRadarAndRubricsProps> = ({
                           rx="3"
                           stroke="currentColor"
                           fill="none"
-                          stroke-width="2"
+                          strokeWidth="2"
                         />
                       </svg>
                     </span>
@@ -91,14 +98,13 @@ const SkillsRadarAndRubrics: React.FC<SkillsRadarAndRubricsProps> = ({
                     </div>
                   </div>
                 ))}
-
               </div>
-                <div className="col-span-2">
-                  <span className="font-semibold text-gray-600 dark:text-gray-300 print:text-black">
-                    Additional Notes:
-                  </span>
-                  <p className="text-gray-700 dark:text-gray-300 print:text-black mb-0 w-full h-[200px] border border-gray-300 dark:border-gray-600 rounded p-2 overflow-y-auto"></p>
-                </div>
+              <div className="col-span-2">
+                <span className="font-semibold text-gray-600 dark:text-gray-300 print:text-black">
+                  Additional Notes:
+                </span>
+                <p className="text-gray-700 dark:text-gray-300 print:text-black mb-0 w-full h-[200px] border border-gray-300 dark:border-gray-600 rounded p-2 overflow-y-auto"></p>
+              </div>
             </div>
           ))}
         </div>

@@ -31,7 +31,18 @@ const FocusSkillsSelector: React.FC<FocusSkillsSelectorProps> = ({ skills, selec
                 ${(disabled || (!isSelected && !canSelectMore)) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
               `}
             >
-              <p className={`font-medium ${isSelected ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{skill.name}</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className={`font-medium ${isSelected ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{skill.name}</p>
+                {skill.isUniversalEnabler && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                    isSelected 
+                      ? 'bg-white/20 text-white' 
+                      : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                  }`}>
+                    🎯
+                  </span>
+                )}
+              </div>
               <p className={`text-xs ${isSelected ? 'opacity-80 text-gray-200 dark:text-gray-300' : 'opacity-80 text-gray-600 dark:text-gray-400'}`}>{skill.category}</p>
             </button>
           );

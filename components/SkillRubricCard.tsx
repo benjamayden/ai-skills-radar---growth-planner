@@ -22,7 +22,14 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
   return (
     <div ref={ref} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-4 flex flex-col justify-between">
       <div>
-        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{name}</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{name}</h3>
+          {skillData.isUniversalEnabler && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+              🎯 Universal Enabler
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{category}</p>
 
         <div className="space-y-3 mb-4">

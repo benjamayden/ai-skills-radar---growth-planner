@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { checkRateLimitStatus } from '../services/rateLimit';
+import { getRateLimitInfo } from '../services/rateLimit';
 
 interface RateLimitInfoProps {
   theme: 'light' | 'dark';
@@ -40,6 +40,15 @@ const RateLimitInfo: React.FC<RateLimitInfoProps> = ({ theme, className = '' }) 
     return theme === 'light' ? 'text-amber-700' : 'text-amber-400';
   };
 
+  const { count, limit, remaining } = getRateLimitInfo();
+  const percentage = (count / limit) * 100;
+  
+  const getColorClass = () => {
+    if (percentage < 50) return 'text-green-600 dark:text-green-400';
+    if (percentage < 80) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
   return (
     <div className={`text-sm font-medium ${getRemainingColor()} ${className}`}>
       <div className="flex items-center">
@@ -57,8 +66,24 @@ const RateLimitInfo: React.FC<RateLimitInfoProps> = ({ theme, className = '' }) 
           {rateLimitInfo.isLikelyAtLimit ? " (critical)" : ""}
         </span>
       </div>
+      <div className={`text-xs ${getColorClass()}`}>
+        API Calls Today: {count}/{limit} ({remaining} remaining)
+      </div>
     </div>
   );
 };
 
 export default RateLimitInfo;
+function checkRateLimitStatus() {
+  const { count, limit, remaining } = getRateLimitInfo();
+  const usagePercent = (count / limit) * 100;
+  const isApproachingLimit = usagePercent >= 80;
+  const isLikelyAtLimit = usagePercent >= 95 || remaining <= 10;
+  return {
+    isApproachingLimit,
+    isLikelyAtLimit,
+    usagePercent,
+    remainingCalls: remaining,
+  };
+}
+
