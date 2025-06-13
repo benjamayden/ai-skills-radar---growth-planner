@@ -4,7 +4,14 @@ import SkillsRadarChart from "../components/SkillsRadarChart";
 import SkillRubricCard from "../components/SkillRubricCard";
 import LoadingIndicator from "../components/LoadingIndicator";
 import SkillMasteryManager from "../components/SkillMasteryManager";
-import { Rater, IdentifiedSkillData, RubricLevel, RadarDisplaySeries, SkillStatus, SkillMasteryCheck } from "../types";
+import {
+  Rater,
+  IdentifiedSkillData,
+  RubricLevel,
+  RadarDisplaySeries,
+  SkillStatus,
+  SkillMasteryCheck,
+} from "../types";
 
 interface TabRadarProps {
   raters: Rater[];
@@ -65,14 +72,15 @@ const TabRadar: React.FC<TabRadarProps> = ({
   getAvailableSkillsForSwap,
   allSkills = [],
 }) => {
-  const activeRaterForRubricDisplay = raters.find((r) => r.id === activeRaterId) || raters[0];  // Local function to handle clicking on skills in the radar chart
+  const activeRaterForRubricDisplay =
+    raters.find((r) => r.id === activeRaterId) || raters[0]; // Local function to handle clicking on skills in the radar chart
   const handleLocalSkillClick = useCallback(
     (skillId: string) => {
       if (!skillId) {
         console.log("TabRadar: No skillId provided for click handler");
         return;
       }
-      
+
       // Try to scroll directly to the rubric card
       const skillCardElement = rubricCardRefs.current[skillId];
       if (skillCardElement) {
@@ -82,7 +90,9 @@ const TabRadar: React.FC<TabRadarProps> = ({
           block: "center",
         });
       } else {
-        console.log(`TabRadar: Element not found for skill ${skillId}, falling back to parent handler`);
+        console.log(
+          `TabRadar: Element not found for skill ${skillId}, falling back to parent handler`
+        );
         // Fall back to parent handler
         onSkillLabelClick(skillId);
       }
@@ -93,19 +103,7 @@ const TabRadar: React.FC<TabRadarProps> = ({
   return (
     <div className="space-y-6">
       {/* Skill Mastery Manager - only show if all required props are provided */}
-      {onMarkSkillAsMastered && onToggleMasteredSkill && onSwapSkill && checkSkillMastery && getAvailableSkillsForSwap && (
-        <SkillMasteryManager
-          skills={allSkills}
-          skillStatuses={skillStatuses}
-          onMarkSkillAsMastered={onMarkSkillAsMastered}
-          onToggleMasteredSkill={onToggleMasteredSkill}
-          onSwapSkill={onSwapSkill}
-          checkSkillMastery={checkSkillMastery}
-          getAvailableSkillsForSwap={getAvailableSkillsForSwap}
-          theme={theme}
-        />
-      )}
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-4">
         <div className="lg:col-span-2 space-y-6 radar-column-print">
           <RaterManager
@@ -132,7 +130,10 @@ const TabRadar: React.FC<TabRadarProps> = ({
             {identifiedSkills.map((skill) => {
               const rating = getRatingForSkillCard(skill.id);
               return (
-                <div key={skill.id} className="text-sm text-gray-600 dark:text-gray-400">
+                <div
+                  key={skill.id}
+                  className="text-sm text-gray-600 dark:text-gray-400"
+                >
                   <strong>{skill.name}:</strong> {rating || "Not Rated"}
                 </div>
               );
@@ -144,11 +145,28 @@ const TabRadar: React.FC<TabRadarProps> = ({
           >
             Print Rubrics & Active Rater Overview
           </button>
+          {onMarkSkillAsMastered &&
+            onToggleMasteredSkill &&
+            onSwapSkill &&
+            checkSkillMastery &&
+            getAvailableSkillsForSwap && (
+              <SkillMasteryManager
+                skills={allSkills}
+                skillStatuses={skillStatuses}
+                onMarkSkillAsMastered={onMarkSkillAsMastered}
+                onToggleMasteredSkill={onToggleMasteredSkill}
+                onSwapSkill={onSwapSkill}
+                checkSkillMastery={checkSkillMastery}
+                getAvailableSkillsForSwap={getAvailableSkillsForSwap}
+                theme={theme}
+              />
+            )}
         </div>
         <div className="lg:col-span-2 space-y-4 rubrics-column-print">
           <div className="hidden print:block print-only-header">
             <p className="text-sm">
-              <strong>Rater for Rubrics:</strong> {activeRaterForRubricDisplay.name}
+              <strong>Rater for Rubrics:</strong>{" "}
+              {activeRaterForRubricDisplay.name}
             </p>
           </div>
           {isProcessingSkills ? (
@@ -168,7 +186,11 @@ const TabRadar: React.FC<TabRadarProps> = ({
                   onRateSkill={handleRateSkill}
                   allRatingsSummary={getAllRatingsSummaryForSkill(skill.id)}
                   skillStatus={skillStatuses[skill.id]}
-                  masteryCheck={checkSkillMastery ? checkSkillMastery(skill.id) : undefined}
+                  masteryCheck={
+                    checkSkillMastery ? checkSkillMastery(skill.id) : undefined
+                  }
+                  onSwapSkill={onSwapSkill}
+                  getAvailableSkillsForSwap={getAvailableSkillsForSwap}
                 />
               </div>
             ))

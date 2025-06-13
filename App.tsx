@@ -11,6 +11,7 @@ import {
   UserRatingsData,
   AppExportData,
   AppExportDataV2,
+  AppExportDataV3,
   RUBRIC_LEVEL_MAP,
   MAX_RUBRIC_LEVEL_VALUE,
   SELF_ASSESSMENT_RATER_ID,
@@ -21,6 +22,9 @@ import {
   SkillBank,
   SkillStatus,
   SkillMasteryCheck,
+  DevelopmentCycle,
+  DevelopmentGoal,
+  ActionStatus
 } from "./types";
 import {
   APP_TITLE,
@@ -37,10 +41,13 @@ import LoadingIndicator from "./components/LoadingIndicator";
 import ThemeToggle from "./components/ThemeToggle";
 import RateLimitInfo from "./components/RateLimitInfo";
 import SkillSelectionInterface from "./components/SkillSelectionInterface";
+import HeaderNavigation from "./components/HeaderNavigation";
+import OptionsDropdown from "./components/OptionsDropdown";
 import TabDetails from "./pages/TabDetails";
 import TabRadar from "./pages/TabRadar";
 import TabGrowth from "./pages/TabGrowth";
 import TabRadarAndRubrics from "./pages/TabRadarAndRubrics";
+import DevelopmentCycleManager from "./components/DevelopmentCycleManager";
 
 const APP_VERSION = "1.13.0"; // Version for Growth Dimension Analysis Feature
 
@@ -116,6 +123,15 @@ const App: React.FC = () => {
   // const [jobSuggestionAttributions, setJobSuggestionAttributions] = useState<
   //   GroundingChunk[]
   // >([]);
+
+  // Development Cycle Management State
+  const [developmentCycles, setDevelopmentCycles] = useState<DevelopmentCycle[]>([]);
+  const [developmentGoals, setDevelopmentGoals] = useState<DevelopmentGoal[]>([]);
+  const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
+
+  // Computed active cycle
+  const activeCycle = activeCycleId ? developmentCycles.find(c => c.id === activeCycleId) || null : null;
+  const activeGoals = activeCycle ? developmentGoals.filter(g => activeCycle.goals.includes(g.id)) : [];
 
   const previousRatingsRef = useRef<UserRatingsData>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -749,7 +765,7 @@ const App: React.FC = () => {
   ]);
 
   const handleExportData = () => {
-    const exportData: AppExportDataV2 = {
+    const exportData: AppExportDataV3 = {
       version: APP_VERSION,
       exportDate: new Date().toISOString(),
       userInput,
@@ -761,6 +777,11 @@ const App: React.FC = () => {
       focusSkills,
       growthPlans,
       suggestedJobTitles,
+      developmentCycles,
+      developmentGoals,
+      developmentActions: [], // Actions are embedded in goals
+      feedbackEntries: [], // Feedback is embedded in cycles for now
+      activeCycleId: activeCycleId || undefined,
       theme,
       activeTab: currentStep === AppStep.MAIN_VIEW ? activeTab : undefined,
       activeRaterId:
@@ -792,22 +813,41 @@ const App: React.FC = () => {
     reader.onload = (e) => {
       try {
         const jsonString = e.target?.result as string;
-        const importedData = JSON.parse(jsonString) as AppExportData | AppExportDataV2;
+        const importedData = JSON.parse(jsonString) as AppExportData | AppExportDataV2 | AppExportDataV3;
 
         if (!importedData || typeof importedData !== "object")
           throw new Error("Invalid file format.");
 
-        // Check if this is the new format (has skillBank) or old format (has identifiedSkills)
-        const isNewFormat = 'skillBank' in importedData;
+        // Check format version
+        const isV3Format = 'developmentCycles' in importedData;
+        const isV2Format = 'skillBank' in importedData;
         
-        if (isNewFormat) {
-          const newData = importedData as AppExportDataV2;
-          if (!newData.skillBank || !Array.isArray(newData.skillBank.allSkillsData))
+        if (isV3Format) {
+          const v3Data = importedData as AppExportDataV3;
+          if (!v3Data.skillBank || !Array.isArray(v3Data.skillBank.allSkillsData))
             throw new Error("Missing or invalid 'skillBank'.");
           
           // Set skill bank data
-          setSkillBank(newData.skillBank);
-          setSkillStatuses(newData.skillStatuses || {});
+          setSkillBank(v3Data.skillBank);
+          setSkillStatuses(v3Data.skillStatuses || {});
+          
+          // Set development cycle data
+          setDevelopmentCycles(v3Data.developmentCycles || []);
+          setDevelopmentGoals(v3Data.developmentGoals || []);
+          setActiveCycleId(v3Data.activeCycleId || null);
+        } else if (isV2Format) {
+          const v2Data = importedData as AppExportDataV2;
+          if (!v2Data.skillBank || !Array.isArray(v2Data.skillBank.allSkillsData))
+            throw new Error("Missing or invalid 'skillBank'.");
+          
+          // Set skill bank data
+          setSkillBank(v2Data.skillBank);
+          setSkillStatuses(v2Data.skillStatuses || {});
+          
+          // Initialize empty development cycle data for V2 imports
+          setDevelopmentCycles([]);
+          setDevelopmentGoals([]);
+          setActiveCycleId(null);
         } else {
           const oldData = importedData as AppExportData;
           if (!Array.isArray(oldData.identifiedSkills))
@@ -826,6 +866,11 @@ const App: React.FC = () => {
             newStatuses[skill.id] = SkillStatus.ACTIVE;
           });
           setSkillStatuses(newStatuses);
+          
+          // Initialize empty development cycle data for V1 imports
+          setDevelopmentCycles([]);
+          setDevelopmentGoals([]);
+          setActiveCycleId(null);
         }
 
         let importedRaters = importedData.raters;
@@ -892,10 +937,12 @@ const App: React.FC = () => {
 
         setErrorMessage(null);
 
-        // Check if we have skills to display (from either format)
-        const hasSkills = isNewFormat 
-          ? (importedData as AppExportDataV2).skillBank.allSkillsData.length > 0
-          : (importedData as AppExportData).identifiedSkills.length > 0;
+        // Check if we have skills to display (from any format)
+        const hasSkills = isV3Format
+          ? (importedData as AppExportDataV3).skillBank.allSkillsData.length > 0
+          : isV2Format 
+            ? (importedData as AppExportDataV2).skillBank.allSkillsData.length > 0
+            : (importedData as AppExportData).identifiedSkills.length > 0;
 
         // Move directly to the main view if there's data to display, regardless of API key status
         if (hasSkills) {
@@ -968,26 +1015,6 @@ const App: React.FC = () => {
     [activeTab]
   );
 
-  const TabButton: React.FC<{
-    tabId: ActiveTabType;
-    currentTab: ActiveTabType;
-    onClick: () => void;
-    children: React.ReactNode;
-  }> = ({ tabId, currentTab, onClick, children }) => (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 font-medium text-sm rounded-t-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 print-hide
-        ${
-          currentTab === tabId
-            ? "bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
-            : "text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-        }`}
-      aria-current={currentTab === tabId ? "page" : undefined}
-    >
-      {children}
-    </button>
-  );
-
   const renderMainViewContent = () => {
     const { chartDataForRecharts, seriesInfoForChart } =
       prepareRadarChartData();
@@ -1052,6 +1079,20 @@ const App: React.FC = () => {
             loadingMessage={loadingMessage}
             handleGenerateGrowthPlansAndJobs={handleGenerateGrowthPlansAndJobs}
             genAI={genAI}
+          />
+        );
+      case "development":
+        return (
+          <DevelopmentCycleManager
+            activeCycle={activeCycle}
+            goals={activeGoals}
+            onCreateCycle={handleCreateCycle}
+            onCreateGoal={handleCreateGoal}
+            onUpdateGoal={handleUpdateGoal}
+            onDeleteGoal={handleDeleteGoal}
+            onUpdateCycle={handleUpdateCycle}
+            theme={theme}
+            skillNames={getSkillNames()}
           />
         );
       case "radarAndRubrics": {
@@ -1135,45 +1176,8 @@ const App: React.FC = () => {
 
     if (currentStep === AppStep.MAIN_VIEW) {
       return (
-        <div className="print-main-container bg-white dark:bg-gray-800 shadow-xl rounded-lg p-0 md:p-2">
-          <div className="border-b border-gray-200 dark:border-gray-700 mb-6 print-hide">
-            <nav
-              className="hide-print -mb-px flex space-x-0 md:space-x-4"
-              aria-label="Tabs"
-            >
-              <TabButton
-                tabId="details"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("details")}
-              >
-                My Details
-              </TabButton>
-              <TabButton
-                tabId="radar"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("radar")}
-              >
-                Skills Radar & Rubrics
-              </TabButton>
-              <TabButton
-                tabId="growth"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("growth")}
-              >
-                Growth Plan
-              </TabButton>
-              <TabButton
-                tabId="radarAndRubrics"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("radarAndRubrics")}
-              >
-                Radar & Rubrics
-              </TabButton>
-            </nav>
-          </div>
-          <div className="px-0 py-0 md:px-6 md:py-4">
-            {renderMainViewContent()}
-          </div>
+        <div className="print-main-container bg-white dark:bg-gray-800 shadow-xl rounded-lg p-6">
+          {renderMainViewContent()}
         </div>
       );
     }
@@ -1307,55 +1311,160 @@ const App: React.FC = () => {
     }
   }, [skillBank.activeSkills.length, skillStatuses, handleMarkSkillAsMastered]);
 
+  // ===============================================
+  // DEVELOPMENT CYCLE MANAGEMENT FUNCTIONS
+  // ===============================================
+
+  const handleCreateCycle = useCallback((cycleData: Omit<DevelopmentCycle, 'id' | 'createdDate'>) => {
+    const newCycle: DevelopmentCycle = {
+      ...cycleData,
+      id: `cycle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdDate: new Date().toISOString()
+    };
+
+    setDevelopmentCycles(prev => [...prev, newCycle]);
+    setActiveCycleId(newCycle.id);
+    setErrorMessage(null);
+  }, []);
+
+  const handleCreateGoal = useCallback((goalData: Omit<DevelopmentGoal, 'id' | 'createdDate' | 'lastUpdated' | 'progress' | 'actions'>) => {
+    if (!activeCycle) {
+      setErrorMessage("No active development cycle. Create a cycle first.");
+      return;
+    }
+
+    const newGoal: DevelopmentGoal = {
+      ...goalData,
+      id: `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdDate: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      progress: 0,
+      actions: []
+    };
+
+    setDevelopmentGoals(prev => [...prev, newGoal]);
+    
+    // Add goal to active cycle
+    setDevelopmentCycles(prev => prev.map(cycle => 
+      cycle.id === activeCycle.id 
+        ? { ...cycle, goals: [...cycle.goals, newGoal.id] }
+        : cycle
+    ));
+
+    setErrorMessage(null);
+  }, [activeCycle]);
+
+  const handleUpdateGoal = useCallback((goalId: string, updates: Partial<DevelopmentGoal>) => {
+    setDevelopmentGoals(prev => prev.map(goal => 
+      goal.id === goalId 
+        ? { 
+            ...goal, 
+            ...updates, 
+            lastUpdated: new Date().toISOString(),
+            // Auto-calculate progress based on completed actions
+            progress: updates.actions 
+              ? Math.round((updates.actions.filter(a => a.status === ActionStatus.DONE).length / updates.actions.length) * 100) || 0
+              : goal.actions.length > 0 
+                ? Math.round((goal.actions.filter(a => a.status === ActionStatus.DONE).length / goal.actions.length) * 100)
+                : goal.progress
+          }
+        : goal
+    ));
+  }, []);
+
+  const handleDeleteGoal = useCallback((goalId: string) => {
+    setDevelopmentGoals(prev => prev.filter(goal => goal.id !== goalId));
+    
+    // Remove goal from all cycles
+    setDevelopmentCycles(prev => prev.map(cycle => ({
+      ...cycle,
+      goals: cycle.goals.filter(id => id !== goalId)
+    })));
+  }, []);
+
+  const handleUpdateCycle = useCallback((updates: Partial<DevelopmentCycle>) => {
+    if (!activeCycle) return;
+
+    setDevelopmentCycles(prev => prev.map(cycle => 
+      cycle.id === activeCycle.id 
+        ? { ...cycle, ...updates }
+        : cycle
+    ));
+  }, [activeCycle]);
+
+  // Get skill names for goal creation
+  const getSkillNames = useCallback((): Record<string, string> => {
+    const skillNames: Record<string, string> = {};
+    skillBank.allSkillsData.forEach(skill => {
+      skillNames[skill.id] = skill.name;
+    });
+    return skillNames;
+  }, [skillBank.allSkillsData]);
+
+  // Print function for radar and rubrics
+  const handlePrintRadar = useCallback(() => {
+    // Switch to radar view if not already there
+    if (activeTab !== 'radarAndRubrics') {
+      setActiveTab('radarAndRubrics');
+      // Use a timeout to allow the tab to render before printing
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    } else {
+      window.print();
+    }
+  }, [activeTab]);
+
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-      <header className="hide-print mb-6 relative print-hide">
-        <div className="flex gap-4 items-center justify-between max-w-7xl mx-auto">
-          <div className="flex flex-col">
-            <div className="flex gap-4 items-end">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight">
-                {APP_TITLE}
-              </h1>
-              <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
-                Align yourself with market demands.
-              </p>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+      <header className="hide-print mb-6 relative p-4 bg-gray-100 dark:bg-gray-800 sticky top-0 left-0 z-10 print-hide border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          {/* Left: Title and Navigation */}
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+              <div className="flex gap-4 items-end">
+                <h1 className="text-2xl md:text-3xl font-bold text-primary-700 dark:text-primary-400 tracking-tight">
+                  {APP_TITLE}
+                </h1>
+                <p className="hidden sm:block text-sm md:text-base text-gray-600 dark:text-gray-400">
+                  Align yourself with market demands.
+                </p>
+              </div>
+              {currentStep === AppStep.MAIN_VIEW && <RateLimitInfo theme={theme} className="mt-1" />}
             </div>
-            {currentStep === AppStep.MAIN_VIEW && <RateLimitInfo theme={theme} className="mt-2" />}
+            
+            {/* Navigation Tabs */}
+            <HeaderNavigation
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              currentStep={currentStep}
+            />
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4 print-hide">
-            <button
-              onClick={() => resetAllApplicationData(genAI !== null)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              Start Over
-            </button>
-            <button
-              onClick={handleExportData}
-              className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              disabled={
-                !userInput &&
-                (!identifiedSkills || identifiedSkills.length === 0)
-              }
-            >
-              Export Data (JSON)
-            </button>
-            <button
-              onClick={triggerImport}
-              className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Import Data (JSON)
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImportData}
-              accept=".json"
-              className="hidden"
-              aria-hidden="true"
+
+          {/* Right: Options and Theme Toggle */}
+          <div className="flex items-center gap-3">
+            <OptionsDropdown
+              onExport={handleExportData}
+              onImport={triggerImport}
+              onStartOver={() => resetAllApplicationData(genAI !== null)}
+              onPrintRadar={handlePrintRadar}
+              disabled={{
+                export: !userInput && (!identifiedSkills || identifiedSkills.length === 0)
+              }}
             />
             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
           </div>
         </div>
+        
+        {/* Hidden file input for import */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImportData}
+          accept=".json"
+          className="hidden"
+          aria-hidden="true"
+        />
       </header>
 
       <div

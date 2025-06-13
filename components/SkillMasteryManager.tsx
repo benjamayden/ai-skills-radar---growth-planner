@@ -64,7 +64,7 @@ const SkillMasteryManager: React.FC<SkillMasteryManagerProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+    <div className="bg-white dark:bg-gray-800">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           Skill Mastery Management

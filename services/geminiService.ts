@@ -19,25 +19,39 @@ import { incrementRateLimitCounter } from './rateLimit';
 
 function parseJsonFromText(text: string): any {
   let jsonStr = text.trim();
-  // First, try to find ```json ... ```
-  const fenceRegexJson = /^```json\s*\n?(.*?)\n?\s*```$/s;
-  let match = jsonStr.match(fenceRegexJson);
-  if (match && match[1]) {
-    jsonStr = match[1].trim();
+  
+  // First, try to find all JSON code blocks and use the last one
+  const jsonBlockMatches = [...jsonStr.matchAll(/```(?:json)?\s*([\s\S]*?)\s*```/g)];
+  if (jsonBlockMatches.length > 0) {
+    // Use the last JSON block found
+    const lastBlock = jsonBlockMatches[jsonBlockMatches.length - 1];
+    if (lastBlock && lastBlock[1]) {
+      jsonStr = lastBlock[1].trim();
+    }
   } else {
-    // If not ```json ... ```, try to find ``` ... ``` (generic fence)
-    const fenceRegexGeneric = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
-    match = jsonStr.match(fenceRegexGeneric);
-    if (match && match[2]) {
-      jsonStr = match[2].trim();
+    // Look for standalone JSON objects (starting with { and ending with })
+    const jsonObjectMatches = [...jsonStr.matchAll(/\{[\s\S]*?\}/g)];
+    if (jsonObjectMatches.length > 0) {
+      // Use the last JSON object found
+      jsonStr = jsonObjectMatches[jsonObjectMatches.length - 1][0];
     }
   }
-  // If no fences were found, or if parsing fails, it will be caught by the try-catch
+  
   try {
     return JSON.parse(jsonStr);
   } catch (e) {
     console.error("Failed to parse JSON response. Original text:", text, "Processed string for parsing:", jsonStr, "Error:", e);
-    // Attempt to provide more specific feedback if it's a common issue
+    
+    // One more attempt: try to extract JSON from the end of the text
+    const lastJsonMatch = text.match(/.*(\{[\s\S]*\})\s*$/);
+    if (lastJsonMatch && lastJsonMatch[1]) {
+      try {
+        return JSON.parse(lastJsonMatch[1]);
+      } catch (retryError) {
+        // Fall through to error handling
+      }
+    }
+    
     if (jsonStr.includes("```")) {
         throw new Error("AI returned a response that looks like it contains JSON within code fences (```), but it could not be correctly extracted or parsed. Please check the console for the exact AI output.");
     }
@@ -422,7 +436,15 @@ User Context:
 - Team Strategy: ${userInput.teamStrategy}
 - Company Strategy: ${userInput.companyStrategy}
 
-Based on your web search, generate ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE} skill candidates. For each skill, provide:
+IMPORTANT: Do NOT include these Universal Growth Enablers as they are automatically included:
+- Communication (ability to convey ideas clearly and listen effectively)
+- Collaboration (working effectively with others to achieve common goals)
+- Problem Solving (systematic approach to identifying, analyzing, and resolving challenges)
+- Adaptability (flexibility and resilience in responding to change and uncertainty)
+- Continuous Learning (commitment to ongoing skill development and knowledge acquisition)
+- Leadership (ability to guide, influence, and inspire others toward achieving goals)
+
+Based on your web search, generate ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE} skill candidates that complement but do not overlap with the Universal Growth Enablers. For each skill, provide:
 
 1. Basic info: id, name, description, category (Hard Skill/Soft Skill)
 2. Strategic analysis:

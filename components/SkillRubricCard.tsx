@@ -12,6 +12,9 @@ interface SkillRubricCardProps {
   // Skill Mastery Props
   skillStatus?: SkillStatus;
   masteryCheck?: SkillMasteryCheck;
+  // Easy Swap Props (optional)
+  onSwapSkill?: (removeSkillId: string, addSkillId: string) => void;
+  getAvailableSkillsForSwap?: () => IdentifiedSkillData[];
 }
 
 const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>(({ 
@@ -21,9 +24,15 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
   disabled,
   allRatingsSummary,
   skillStatus,
-  masteryCheck 
+  masteryCheck,
+  onSwapSkill,
+  getAvailableSkillsForSwap
 }, ref) => {
   const { id, name, category, rubric } = skillData;
+  const [showSwapOptions, setShowSwapOptions] = React.useState(false);
+  
+  const availableSkills = getAvailableSkillsForSwap ? getAvailableSkillsForSwap() : [];
+  const canShowSwap = onSwapSkill && getAvailableSkillsForSwap && availableSkills.length > 0;
 
   return (
     <div ref={ref} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 mb-4 flex flex-col justify-between">
@@ -50,6 +59,49 @@ const SkillRubricCard = React.forwardRef<HTMLDivElement, SkillRubricCardProps>((
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                 🎯 Universal Enabler
               </span>
+            )}
+            {/* Quick Swap Button - Only show for non-universal skills when swap is available */}
+            {canShowSwap && !skillData.isUniversalEnabler && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowSwapOptions(!showSwapOptions)}
+                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 
+                           focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Swap this skill with another"
+                >
+                  ⇄ Swap
+                </button>
+                
+                {showSwapOptions && (
+                  <div className="absolute top-full right-0 mt-1 w-64 max-h-40 overflow-y-auto 
+                                bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
+                                rounded-md shadow-lg z-10">
+                    <div className="p-2">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        Replace "{name}" with:
+                      </div>
+                      {availableSkills.map(skill => (
+                        <button
+                          key={skill.id}
+                          onClick={() => {
+                            onSwapSkill!(id, skill.id);
+                            setShowSwapOptions(false);
+                          }}
+                          className="w-full text-left text-xs p-2 hover:bg-gray-100 dark:hover:bg-gray-600 
+                                   rounded border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {skill.name}
+                          </div>
+                          <div className="text-gray-600 dark:text-gray-400 truncate">
+                            {skill.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

@@ -134,3 +134,131 @@ export const SKILL_SELECTION_CONFIG = {
     MARKET_IMPORTANCE: 0.3
   }
 };
+
+// ===============================================
+// DEVELOPMENT CYCLE CONFIGURATION
+// ===============================================
+
+// Development Cycle Configuration - SIMPLIFIED: One goal per cycle for better focus
+export const DEVELOPMENT_CYCLE_CONFIG = {
+  DEFAULT_CYCLE_DURATION_MONTHS: 3,     // Quarterly cycles by default
+  MAX_GOALS_PER_CYCLE: 1,               // SIMPLIFIED: Only one goal per cycle for maximum focus
+  MIN_GOALS_PER_CYCLE: 1,               // Exactly one goal required
+  MAX_ACTIONS_PER_GOAL: 5,              // SIMPLIFIED: Reduced action complexity
+  CYCLE_TEMPLATES: [
+    { name: "Quarterly", months: 3 },
+    { name: "Half-Yearly", months: 6 },
+    { name: "Annual", months: 12 },
+    { name: "Custom", months: 0 }
+  ]
+};
+
+// Growth Dimension Descriptions for UI
+export const GROWTH_DIMENSION_DESCRIPTIONS = {
+  Breadth: {
+    title: "Breadth - Versatility",
+    description: "Enhancing versatility and cross-functional contribution",
+    icon: "🌐",
+    examples: ["Cross-team collaboration", "Multi-domain knowledge", "Adaptability"]
+  },
+  Depth: {
+    title: "Depth - Expertise", 
+    description: "Deepening specialization and expertise in critical areas",
+    icon: "⚡",
+    examples: ["Technical mastery", "Domain expertise", "Thought leadership"]
+  },
+  Reach: {
+    title: "Reach - Influence",
+    description: "Expanding involvement, responsibility, and ability to shape work",
+    icon: "🎯",
+    examples: ["Leadership roles", "Initiative ownership", "Strategic input"]
+  },
+  Range: {
+    title: "Range - Complexity",
+    description: "Tackling more complex, high-impact, or strategic work",
+    icon: "🚀",
+    examples: ["Complex projects", "High-stakes decisions", "Organizational impact"]
+  }
+};
+
+// Company Values Descriptions
+export const COMPANY_VALUES_DESCRIPTIONS = {
+  "Forward-thinking": {
+    description: "Creating a better tomorrow through thoughtful planning and innovation",
+    behaviors: ["Strategic thinking", "Innovation", "Future planning"]
+  },
+  "Contribution": {
+    description: "Believing that everyone can make a valuable difference and share ideas",
+    behaviors: ["Active participation", "Idea sharing", "Value creation"]
+  },
+  "Collaboration": {
+    description: "Recognizing that working together produces the best outcomes",
+    behaviors: ["Teamwork", "Knowledge sharing", "Collective success"]
+  },
+  "Transparency": {
+    description: "Seeking insight and sharing knowledge to foster engagement and innovation",
+    behaviors: ["Open communication", "Knowledge sharing", "Honest feedback"]
+  }
+};
+
+// Goal Type Configuration
+export const GOAL_TYPE_CONFIG = {
+  "Skill Development": {
+    icon: "📚",
+    description: "Building technical or soft skills",
+    commonMetrics: ["Certification completion", "Skill assessment improvement", "Practical application"]
+  },
+  "Project Contribution": {
+    icon: "🏗️", 
+    description: "Contributing to specific projects or initiatives",
+    commonMetrics: ["Project completion", "Deliverable quality", "Stakeholder feedback"]
+  },
+  "Leadership Growth": {
+    icon: "👥",
+    description: "Developing leadership and management capabilities",
+    commonMetrics: ["Team feedback", "Leadership assessment", "Mentoring success"]
+  },
+  "Process Improvement": {
+    icon: "⚙️",
+    description: "Enhancing workflows, efficiency, or quality",
+    commonMetrics: ["Process metrics", "Efficiency gains", "Quality improvements"]
+  },
+  "Innovation": {
+    icon: "💡",
+    description: "Creating new solutions or improving existing ones",
+    commonMetrics: ["Innovation impact", "Adoption rates", "Creative solutions"]
+  },
+  "Mentoring": {
+    icon: "🤝",
+    description: "Supporting and developing others",
+    commonMetrics: ["Mentee progress", "Feedback quality", "Development outcomes"]
+  }
+};
+
+// Feedback Templates for common scenarios
+export const FEEDBACK_TEMPLATES = {
+  PROJECT_FEEDBACK: {
+    title: "Project Contribution Feedback",
+    prompts: [
+      "What were [Name]'s key contributions to this project?",
+      "How did they handle challenges or obstacles?",
+      "What could they improve for future projects?"
+    ]
+  },
+  SKILL_FEEDBACK: {
+    title: "Skill Development Feedback", 
+    prompts: [
+      "How has [Name] demonstrated growth in [Skill]?",
+      "What examples show their current capability level?",
+      "What would help them advance to the next level?"
+    ]
+  },
+  GENERAL_FEEDBACK: {
+    title: "General Development Feedback",
+    prompts: [
+      "What are [Name]'s greatest strengths?",
+      "What areas would benefit from development?",
+      "What specific examples support your observations?"
+    ]
+  }
+};
