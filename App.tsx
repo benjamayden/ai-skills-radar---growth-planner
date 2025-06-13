@@ -34,6 +34,7 @@ import { geminiService } from "./services/geminiService";
 
 import ApiKeyInput from "./components/ApiKeyInput";
 import LoadingIndicator from "./components/LoadingIndicator";
+import HeaderNavigation from "./components/HeaderNavigation";
 import ThemeToggle from "./components/ThemeToggle";
 import RateLimitInfo from "./components/RateLimitInfo";
 import SkillSelectionInterface from "./components/SkillSelectionInterface";
@@ -968,26 +969,6 @@ const App: React.FC = () => {
     [activeTab]
   );
 
-  const TabButton: React.FC<{
-    tabId: ActiveTabType;
-    currentTab: ActiveTabType;
-    onClick: () => void;
-    children: React.ReactNode;
-  }> = ({ tabId, currentTab, onClick, children }) => (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 font-medium text-sm rounded-t-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 print-hide
-        ${
-          currentTab === tabId
-            ? "bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
-            : "text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-        }`}
-      aria-current={currentTab === tabId ? "page" : undefined}
-    >
-      {children}
-    </button>
-  );
-
   const renderMainViewContent = () => {
     const { chartDataForRecharts, seriesInfoForChart } =
       prepareRadarChartData();
@@ -1135,43 +1116,8 @@ const App: React.FC = () => {
 
     if (currentStep === AppStep.MAIN_VIEW) {
       return (
-        <div className="print-main-container bg-white dark:bg-gray-800 shadow-xl rounded-lg p-0 md:p-2">
-          <div className="border-b border-gray-200 dark:border-gray-700 mb-6 print-hide">
-            <nav
-              className="hide-print -mb-px flex space-x-0 md:space-x-4"
-              aria-label="Tabs"
-            >
-              <TabButton
-                tabId="details"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("details")}
-              >
-                My Details
-              </TabButton>
-              <TabButton
-                tabId="radar"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("radar")}
-              >
-                Skills Radar & Rubrics
-              </TabButton>
-              <TabButton
-                tabId="growth"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("growth")}
-              >
-                Growth Plan
-              </TabButton>
-              <TabButton
-                tabId="radarAndRubrics"
-                currentTab={activeTab}
-                onClick={() => setActiveTab("radarAndRubrics")}
-              >
-                Radar & Rubrics
-              </TabButton>
-            </nav>
-          </div>
-          <div className="px-0 py-0 md:px-6 md:py-4">
+        <div className="print-main-container bg-white dark:bg-gray-800 shadow-xl rounded-lg p-2 md:p-6">
+          <div className="px-0 py-0">
             {renderMainViewContent()}
           </div>
         </div>
@@ -1308,59 +1254,52 @@ const App: React.FC = () => {
   }, [skillBank.activeSkills.length, skillStatuses, handleMarkSkillAsMastered]);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-      <header className="hide-print mb-6 relative print-hide">
-        <div className="flex gap-4 items-center justify-between max-w-7xl mx-auto">
-          <div className="flex flex-col">
-            <div className="flex gap-4 items-end">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight">
-                {APP_TITLE}
-              </h1>
-              <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
-                Align yourself with market demands.
-              </p>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 print-hide">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex gap-2 md:gap-4 items-end">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-primary-700 dark:text-primary-500 tracking-tight truncate">
+                  {APP_TITLE}
+                </h1>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 hidden sm:block">
+                  Align yourself with market demands.
+                </p>
+              </div>
+              {currentStep === AppStep.MAIN_VIEW && <RateLimitInfo theme={theme} className="mt-1" />}
             </div>
-            {currentStep === AppStep.MAIN_VIEW && <RateLimitInfo theme={theme} className="mt-2" />}
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4 print-hide">
-            <button
-              onClick={() => resetAllApplicationData(genAI !== null)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              Start Over
-            </button>
-            <button
-              onClick={handleExportData}
-              className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              disabled={
-                !userInput &&
-                (!identifiedSkills || identifiedSkills.length === 0)
-              }
-            >
-              Export Data (JSON)
-            </button>
-            <button
-              onClick={triggerImport}
-              className="px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Import Data (JSON)
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImportData}
-              accept=".json"
-              className="hidden"
-              aria-hidden="true"
-            />
-            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            
+            {/* Navigation and Options - Always show options dropdown */}
+            <div className="flex items-center gap-4 ml-4">
+              <HeaderNavigation
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                currentStep={currentStep}
+                onExportData={handleExportData}
+                onStartOver={() => resetAllApplicationData(genAI !== null)}
+                fileInputRef={fileInputRef}
+                exportDisabled={!userInput && (!identifiedSkills || identifiedSkills.length === 0)}
+              />
+              <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            </div>
           </div>
         </div>
       </header>
 
-      <div
-        className={`max-w-7xl mx-auto`}
-      >
+      {/* Hidden file input for import functionality */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImportData}
+        accept=".json"
+        className="hidden"
+        aria-hidden="true"
+      />
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {errorMessage && (
           <div
             className="mb-6 p-4 bg-red-100 border-red-400 text-red-700 rounded-md shadow-md dark:bg-red-900 dark:border-red-700 dark:text-red-300 print-hide"
@@ -1370,8 +1309,7 @@ const App: React.FC = () => {
           </div>
         )}
         {renderContent()}
-      </div>
-
+      </main>
       <footer className="text-center mt-12 py-6 border-t border-gray-300 dark:border-gray-700 print-hide">
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Powered by Google Gemini.
