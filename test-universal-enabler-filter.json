@@ -1,0 +1,18 @@
+{
+  "description": "Test data to verify universal enabler filtering",
+  "expectedBehavior": "When importing this data, universal enablers should appear separately from personal skill candidates",
+  "userInput": {
+    "hardSkills": "React, TypeScript, Python, Data Analysis",
+    "resumeInfo": "Full-stack developer with 3 years experience in web applications and data visualization",
+    "aspirationsThrive": "Building user-focused products with clean, maintainable code",
+    "aspirationsGoals": "Lead a product development team and become a technical product manager",
+    "teamStrategy": "Focus on rapid prototyping and user feedback integration",
+    "companyStrategy": "Become the leading platform for data-driven decision making"
+  },
+  "expectedResults": {
+    "universalEnablersCount": 6,
+    "universalEnablerIds": ["communication", "collaboration", "problem_solving", "adaptability", "continuous_learning", "leadership"],
+    "personalSkillCandidatesShould": "NOT include any universal enabler IDs",
+    "personalSkillCandidatesShould2": "Focus on technical and domain-specific skills only"
+  }
+}

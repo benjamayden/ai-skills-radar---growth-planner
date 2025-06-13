@@ -231,6 +231,7 @@ export interface RadarDisplaySeries {
 // NEW: Skill visibility and mastery tracking
 export enum SkillStatus {
   ACTIVE = "active",           // Currently visible in radar/lists
+  INACTIVE = "inactive",       // Available for swapping but not currently on radar
   MASTERED = "mastered",       // Hidden due to high proficiency, can be toggled back
   ARCHIVED = "archived"        // Completely archived, not available for selection
 }

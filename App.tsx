@@ -284,15 +284,21 @@ const App: React.FC = () => {
   useEffect(() => {
     const initialize = async () => {
       let keyInitialized = false;
-      if (process.env.API_KEY) {
-        keyInitialized = await tryInitGenAI(process.env.API_KEY, "env");
+      
+      // Try environment variable first
+      if (process.env.GEMINI_API_KEY) {
+        keyInitialized = await tryInitGenAI(process.env.GEMINI_API_KEY, "env");
       }
+      
+      // Fall back to localStorage if env var not available
       if (!keyInitialized) {
         const storedKey = localStorage.getItem("geminiApiKey");
         if (storedKey) {
           keyInitialized = await tryInitGenAI(storedKey, "localStorage");
         }
       }
+      
+      // If neither worked, show API key input screen
       if (!keyInitialized) {
         setCurrentStep(AppStep.API_KEY_INPUT);
         setIsLoading(false);
@@ -472,7 +478,7 @@ const App: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      // Combine selected personal skills with universal enablers
+      // Combine selected personal skills with universal enablers for active skills
       const allSelectedSkills = [
         ...skillSelection.universalEnablers,
         ...skillSelection.candidates.filter(skill => 
@@ -480,7 +486,17 @@ const App: React.FC = () => {
         )
       ];
 
-      // Convert SkillCandidate[] to IdentifiedSkillData[]
+      // Convert ALL candidates to IdentifiedSkillData[] for the skill bank
+      const allSkillsData: IdentifiedSkillData[] = skillSelection.candidates.map(skill => ({
+        id: skill.id,
+        name: skill.name,
+        category: skill.category,
+        description: skill.description,
+        rubric: skill.rubric,
+        isUniversalEnabler: skill.isUniversalEnabler || false,
+      }));
+
+      // Convert selected skills to IdentifiedSkillData[] for current active skills
       const identifiedSkillsData: IdentifiedSkillData[] = allSelectedSkills.map(skill => ({
         id: skill.id,
         name: skill.name,
@@ -492,13 +508,30 @@ const App: React.FC = () => {
 
       // Update ratings to preserve any existing ratings for these skills
       const updatedRatings: UserRatingsData = {};
-      identifiedSkillsData.forEach((skill) => {
+      allSkillsData.forEach((skill) => {
         if (previousRatingsRef.current[skill.id]) {
           updatedRatings[skill.id] = previousRatingsRef.current[skill.id];
         }
       });
 
-      setIdentifiedSkills(identifiedSkillsData);
+      // Set up skill bank with ALL generated skills and selected active skills
+      setSkillBank({
+        activeSkills: identifiedSkillsData.map(skill => skill.id),
+        masteredSkills: [],
+        allSkillsData: allSkillsData
+      });
+
+      // Initialize skill statuses
+      const initialStatuses: Record<string, SkillStatus> = {};
+      allSkillsData.forEach(skill => {
+        if (identifiedSkillsData.find(activeSkill => activeSkill.id === skill.id)) {
+          initialStatuses[skill.id] = SkillStatus.ACTIVE;
+        } else {
+          initialStatuses[skill.id] = SkillStatus.INACTIVE;
+        }
+      });
+      setSkillStatuses(initialStatuses);
+
       setUserRatings(updatedRatings);
       setCurrentStep(AppStep.MAIN_VIEW);
       setActiveTab("radar");
@@ -1014,11 +1047,9 @@ const App: React.FC = () => {
             rubricCardRefs={rubricCardRefs}
             skillStatuses={skillStatuses}
             onMarkSkillAsMastered={handleMarkSkillAsMastered}
-            onToggleMasteredSkill={handleToggleMasteredSkill}
             onSwapSkill={handleSwapSkill}
             checkSkillMastery={checkSkillMastery}
             getAvailableSkillsForSwap={getAvailableSkillsForSwap}
-            allSkills={skillBank.allSkillsData}
           />
         );
       case "growth":
@@ -1172,7 +1203,7 @@ const App: React.FC = () => {
   }, [userRatings, raters]);
 
   const getAvailableSkillsForSwap = useCallback((): IdentifiedSkillData[] => {
-    // Return skills that are not currently active (mastered or in the bank but not displayed)
+    // Return all skills that are not currently active - this includes both mastered and inactive skills
     const activeSkillIds = new Set(skillBank.activeSkills);
     return skillBank.allSkillsData.filter(skill => !activeSkillIds.has(skill.id));
   }, [skillBank]);
@@ -1202,56 +1233,26 @@ const App: React.FC = () => {
   }, [checkSkillMastery]);
 
   const handleSwapSkill = useCallback((removeSkillId: string, addSkillId: string) => {
-    // Check if removal is allowed (either mastered or forced)
-    const masteryCheck = checkSkillMastery(removeSkillId);
-    if (!masteryCheck.canBeMastered) {
-      setErrorMessage("Cannot remove this skill - it doesn't meet mastery criteria");
-      return;
-    }
-
+    // Free swapping - no mastery requirements, just swap active skills
     setSkillBank(prev => ({
       ...prev,
-      activeSkills: prev.activeSkills.map(id => id === removeSkillId ? addSkillId : id),
-      masteredSkills: [...prev.masteredSkills, removeSkillId]
+      activeSkills: prev.activeSkills.map(id => id === removeSkillId ? addSkillId : id)
     }));
-
+    
+    // Update skill statuses
     setSkillStatuses(prev => ({
       ...prev,
-      [removeSkillId]: SkillStatus.MASTERED,
-      [addSkillId]: SkillStatus.ACTIVE
+      [removeSkillId]: SkillStatus.INACTIVE, // Mark removed skill as inactive
+      [addSkillId]: SkillStatus.ACTIVE        // Mark new skill as active
     }));
 
-    // Update focus skills
-    setFocusSkills(prev => prev.map(id => id === removeSkillId ? addSkillId : id));
-    
-    setErrorMessage(null);
-  }, [checkSkillMastery]);
-
-  const handleToggleMasteredSkill = useCallback((skillId: string) => {
-    const isCurrentlyMastered = skillStatuses[skillId] === SkillStatus.MASTERED;
-    
-    if (isCurrentlyMastered) {
-      // Bring back to active (if there's room)
-      if (skillBank.activeSkills.length >= 12) {
-        setErrorMessage("Cannot activate more than 12 skills. Remove one first.");
-        return;
-      }
-      
-      setSkillBank(prev => ({
-        ...prev,
-        activeSkills: [...prev.activeSkills, skillId],
-        masteredSkills: prev.masteredSkills.filter(id => id !== skillId)
-      }));
-      
-      setSkillStatuses(prev => ({
-        ...prev,
-        [skillId]: SkillStatus.ACTIVE
-      }));
-    } else {
-      // Mark as mastered
-      handleMarkSkillAsMastered(skillId);
-    }
-  }, [skillBank.activeSkills.length, skillStatuses, handleMarkSkillAsMastered]);
+    // Update focus skills if the removed skill was a focus skill
+    setFocusSkills(prev => prev.includes(removeSkillId) 
+      ? prev.map(id => id === removeSkillId ? addSkillId : id)
+      : prev
+    );
+     setErrorMessage(null);
+  }, [skillBank, setSkillStatuses, setFocusSkills]);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">

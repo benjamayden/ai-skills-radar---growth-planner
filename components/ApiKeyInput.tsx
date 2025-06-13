@@ -23,13 +23,13 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onApiKeySubmit, loading, erro
       <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-6 text-center">Enter Your Gemini API Key</h2>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         This application requires your own Google Gemini API key to function. 
-        If `process.env.API_KEY` is not set in the deployment environment, the key you enter here will be used.
+        If `GEMINI_API_KEY` is not set in the environment, you can enter your key here.
       </p>
       <div className="bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 dark:border-yellow-600 p-3 my-4 rounded">
         <p className="text-xs text-yellow-700 dark:text-yellow-300">
           <strong>Security Note:</strong> If you provide a key through this form, it will be stored in your browser's `localStorage` for convenience. 
           While this makes it easier to reuse the app without re-entering your key, be aware that storing API keys in `localStorage` is generally not recommended for production applications or if you share your browser/computer. 
-          The most secure way to use this app is by having the API key set as an environment variable (`process.env.API_KEY`) during deployment.
+          The most secure way to use this app is by having the API key set as an environment variable (`GEMINI_API_KEY`) during deployment.
         </p>
       </div>
       

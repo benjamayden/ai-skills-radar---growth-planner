@@ -20,8 +20,13 @@ const SkillSelectionInterface: React.FC<SkillSelectionInterfaceProps> = ({
   );
 
   const sortedCandidates = useMemo(() => {
-    return [...skillSelection.candidates].sort((a, b) => a.overallRank - b.overallRank);
-  }, [skillSelection.candidates]);
+    // Filter out universal enabler skills from candidates since they're already shown separately
+    const universalEnablerIds = skillSelection.universalEnablers.map(skill => skill.id);
+    const personalSkillCandidates = skillSelection.candidates.filter(
+      candidate => !universalEnablerIds.includes(candidate.id)
+    );
+    return personalSkillCandidates.sort((a, b) => a.overallRank - b.overallRank);
+  }, [skillSelection.candidates, skillSelection.universalEnablers]);
 
   const handleSkillToggle = (skillId: string) => {
     if (loading) return;

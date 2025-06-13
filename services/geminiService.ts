@@ -422,7 +422,15 @@ User Context:
 - Team Strategy: ${userInput.teamStrategy}
 - Company Strategy: ${userInput.companyStrategy}
 
-Based on your web search, generate ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE} skill candidates. For each skill, provide:
+CRITICAL: Do NOT include these Universal Growth Enablers as they are automatically included:
+- Communication (ability to convey ideas clearly and listen effectively)
+- Collaboration (working effectively with others to achieve common goals)
+- Problem Solving (systematic approach to identifying, analyzing, and resolving challenges)
+- Adaptability (flexibility and resilience in responding to change and uncertainty)
+- Continuous Learning (commitment to ongoing skill development and knowledge acquisition)
+- Leadership (ability to guide, influence, and inspire others toward achieving goals)
+
+Based on your web search, generate ${SKILL_SELECTION_CONFIG.AI_CANDIDATES_TO_GENERATE} UNIQUE skill candidates that complement but do NOT duplicate or overlap with the Universal Growth Enablers listed above. Focus on technical, domain-specific, and specialized skills only. For each skill, provide:
 
 1. Basic info: id, name, description, category (Hard Skill/Soft Skill)
 2. Strategic analysis:
@@ -483,8 +491,22 @@ Focus on skills relevant to product development, UX/UI design, software developm
       throw new Error("AI response missing skillCandidates array");
     }
 
-    // Process and rank candidates
-    const processedCandidates: SkillCandidate[] = parsedData.skillCandidates.map((candidate: any, index: number) => {
+    // Process and rank candidates, filtering out any that match universal enabler IDs
+    const universalEnablerIds = new Set(UNIVERSAL_GROWTH_ENABLERS.map(skill => skill.id));
+    const filteredCandidates = parsedData.skillCandidates.filter((candidate: any) => 
+      !universalEnablerIds.has(candidate.id)
+    );
+    
+    // Debug logging
+    const removedCandidates = parsedData.skillCandidates.filter((candidate: any) => 
+      universalEnablerIds.has(candidate.id)
+    );
+    if (removedCandidates.length > 0) {
+      console.log(`Filtered out ${removedCandidates.length} universal enabler skills from AI candidates:`, 
+        removedCandidates.map((c: any) => c.name || c.id));
+    }
+    
+    const processedCandidates: SkillCandidate[] = filteredCandidates.map((candidate: any, index: number) => {
       // Calculate ranking (for now, use relevance score and index)
       const goalRelevanceRank = index + 1;
       const strategyRelevanceRank = index + 1;

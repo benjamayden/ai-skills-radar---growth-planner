@@ -3,7 +3,6 @@ import RaterManager from "../components/RaterManager";
 import SkillsRadarChart from "../components/SkillsRadarChart";
 import SkillRubricCard from "../components/SkillRubricCard";
 import LoadingIndicator from "../components/LoadingIndicator";
-import SkillMasteryManager from "../components/SkillMasteryManager";
 import { Rater, IdentifiedSkillData, RubricLevel, RadarDisplaySeries, SkillStatus, SkillMasteryCheck } from "../types";
 
 interface TabRadarProps {
@@ -29,11 +28,9 @@ interface TabRadarProps {
   // Skill Mastery Props
   skillStatuses?: Record<string, SkillStatus>;
   onMarkSkillAsMastered?: (skillId: string) => void;
-  onToggleMasteredSkill?: (skillId: string) => void;
   onSwapSkill?: (removeSkillId: string, addSkillId: string) => void;
   checkSkillMastery?: (skillId: string) => SkillMasteryCheck;
   getAvailableSkillsForSwap?: () => IdentifiedSkillData[];
-  allSkills?: IdentifiedSkillData[];
 }
 
 const TabRadar: React.FC<TabRadarProps> = ({
@@ -59,11 +56,9 @@ const TabRadar: React.FC<TabRadarProps> = ({
   // Skill Mastery Props
   skillStatuses = {},
   onMarkSkillAsMastered,
-  onToggleMasteredSkill,
   onSwapSkill,
   checkSkillMastery,
   getAvailableSkillsForSwap,
-  allSkills = [],
 }) => {
   const activeRaterForRubricDisplay = raters.find((r) => r.id === activeRaterId) || raters[0];  // Local function to handle clicking on skills in the radar chart
   const handleLocalSkillClick = useCallback(
@@ -92,20 +87,6 @@ const TabRadar: React.FC<TabRadarProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Skill Mastery Manager - only show if all required props are provided */}
-      {onMarkSkillAsMastered && onToggleMasteredSkill && onSwapSkill && checkSkillMastery && getAvailableSkillsForSwap && (
-        <SkillMasteryManager
-          skills={allSkills}
-          skillStatuses={skillStatuses}
-          onMarkSkillAsMastered={onMarkSkillAsMastered}
-          onToggleMasteredSkill={onToggleMasteredSkill}
-          onSwapSkill={onSwapSkill}
-          checkSkillMastery={checkSkillMastery}
-          getAvailableSkillsForSwap={getAvailableSkillsForSwap}
-          theme={theme}
-        />
-      )}
-      
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-4">
         <div className="lg:col-span-2 space-y-6 radar-column-print">
           <RaterManager
@@ -169,6 +150,11 @@ const TabRadar: React.FC<TabRadarProps> = ({
                   allRatingsSummary={getAllRatingsSummaryForSkill(skill.id)}
                   skillStatus={skillStatuses[skill.id]}
                   masteryCheck={checkSkillMastery ? checkSkillMastery(skill.id) : undefined}
+                  onMarkSkillAsMastered={onMarkSkillAsMastered}
+                  onSwapSkill={onSwapSkill}
+                  getAvailableSkillsForSwap={getAvailableSkillsForSwap}
+                  getRatingForSkill={getRatingForSkillCard}
+                  getAllRatingsSummaryForSkill={getAllRatingsSummaryForSkill}
                 />
               </div>
             ))
